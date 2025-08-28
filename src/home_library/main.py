@@ -3,6 +3,8 @@
 Provides a simple, testable "Hello, World!" implementation.
 """
 
+from home_library.settings import settings
+
 
 def hello() -> str:
     """Return the classic greeting.
@@ -15,6 +17,11 @@ def hello() -> str:
 def main() -> None:
     """Print the greeting to stdout."""
     print(hello())  # noqa: T201
+
+
+def show_settings() -> None:
+    """Print the app settings to stdout."""
+    print(settings.model_dump_json(indent=2))  # noqa: T201
 
 
 if __name__ == "__main__":  # pragma: no cover - CLI entry point
