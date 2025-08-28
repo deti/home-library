@@ -11,6 +11,8 @@ requires-python = ">=3.13"
 dependencies = [
     "pydantic>=2.11.7",
     "pydantic-settings>=2.6.1",
+    "ebooklib>=0.18",
+    "beautifulsoup4>=4.12",
 ]
 
 [dependency-groups]
@@ -22,6 +24,7 @@ dev = [
 [project.scripts]
 home-library = "home_library.main:main"
 show-settings = "home_library.main:show_settings"
+epub-info = "home_library.main:describe_epub_main"
 
 # Configure hatchling to find packages in src/
 [tool.hatch.build.targets.wheel]
