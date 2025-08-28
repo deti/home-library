@@ -19,6 +19,34 @@ make init
 
 This will create a local virtual environment (by default at .venv) and generate/update uv.lock.
 
+## Configuration
+Settings are loaded using pydantic-settings from environment variables and an optional .env file at the project root.
+
+- Copy the example file and adjust values:
+```bash
+cp env.example .env
+```
+
+- Example .env values (see env.example):
+```
+APP_NAME=home-library
+DEBUG=false
+LOG_LEVEL=INFO
+ENVIRONMENT=development
+```
+
+- Access settings in code:
+```python
+from home_library.settings import settings
+
+print(settings.app_name)  # "home-library" by default or value from .env
+print(settings.debug)     # False by default unless DEBUG=true in .env/env
+```
+
+Notes:
+- Environment variables override .env values; defaults are used if neither is present.
+- .env is read from the project root. If you run commands from the root, this will be picked up automatically.
+
 ## Running
 There are multiple ways to run the app (all print a greeting):
 
@@ -97,6 +125,7 @@ uv sync --frozen --dev
 
 ## Project layout
 - src/home_library/main.py — package entry points (hello() and main())
+- src/home_library/settings.py — application configuration via pydantic-settings
 - main.py — simple root-level script
 - tests/ — pytest tests covering both entry points
 - pyproject.toml — build config and console script mapping (home-library -> home_library.main:main)
