@@ -20,4 +20,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":  # pragma: no cover - CLI entry point
+    print("You've reached the CLI entry point.")
     main()
