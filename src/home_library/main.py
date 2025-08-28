@@ -3,8 +3,6 @@
 Provides a simple, testable "Hello, World!" implementation.
 """
 
-from __future__ import annotations
-
 
 def hello() -> str:
     """Return the classic greeting.
@@ -16,9 +14,9 @@ def hello() -> str:
 
 def main() -> None:
     """Print the greeting to stdout."""
-    print(hello())
+    print(hello())  # noqa: T201
 
 
 if __name__ == "__main__":  # pragma: no cover - CLI entry point
-    print("You've reached the CLI entry point.")
+    print("You've reached the CLI entry point.")  # noqa: T201
     main()

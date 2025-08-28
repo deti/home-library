@@ -1,9 +1,10 @@
-from __future__ import annotations
-
 import os
+import subprocess
 import sys
 from pathlib import Path
-import subprocess
+
+from home_library.main import hello
+
 
 # Ensure the package can be imported from the src/ layout during tests
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -13,8 +14,6 @@ if str(SRC_PATH) not in sys.path:
 
 
 def test_hello_function_returns_expected_string():
-    from home_library.main import hello
-
     assert hello() == "Hello, World!"
 
 

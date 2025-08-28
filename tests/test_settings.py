@@ -1,21 +1,23 @@
-from __future__ import annotations
-
 import sys
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator
+
 import pytest
+
+from home_library.settings import (
+    PROJECT_ROOT as SETTINGS_PROJECT_ROOT,
+)
+from home_library.settings import (
+    Settings,
+    get_settings,
+)
+
 
 # Ensure the package can be imported from the src/ layout during tests
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SRC_PATH = PROJECT_ROOT / "src"
 if str(SRC_PATH) not in sys.path:
     sys.path.insert(0, str(SRC_PATH))
-
-from home_library.settings import (  # noqa: E402  (import after sys.path tweak)
-    PROJECT_ROOT as SETTINGS_PROJECT_ROOT,
-    Settings,
-    get_settings,
-)
 
 
 @pytest.fixture(autouse=True)
@@ -65,7 +67,7 @@ def test_environment_variables_override(monkeypatch: pytest.MonkeyPatch):
     assert s.environment == "production"
 
 
-def test_env_file_loaded_from_project_root(tmp_path: Path):
+def test_env_file_loaded_from_project_root():
     dotenv_path = SETTINGS_PROJECT_ROOT / ".env"
 
     # Backup existing .env if present
@@ -103,9 +105,8 @@ def test_env_file_loaded_from_project_root(tmp_path: Path):
                 backup_path.read_text(encoding="utf-8"), encoding="utf-8"
             )
             backup_path.unlink()
-        else:
-            if dotenv_path.exists():
-                dotenv_path.unlink()
+        elif dotenv_path.exists():
+            dotenv_path.unlink()
 
 
 def test_cached_accessor_and_cache_clear(monkeypatch: pytest.MonkeyPatch):
