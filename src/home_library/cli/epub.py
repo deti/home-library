@@ -29,15 +29,10 @@ def main() -> None:
         action="store_true",
         help="Print full JSON dump (chapters text omitted unless --include-text)",
     )
-    parser.add_argument(
-        "--include-text",
-        action="store_true",
-        help="Include full chapter text in output (can be large)",
-    )
 
     args = parser.parse_args()
 
-    details = parse_epub(args.path, include_text=bool(args.include_text))
+    details = parse_epub(args.path, include_text=True)
 
     if args.json:
         # Avoid giant outputs unless explicitly requested

@@ -229,7 +229,7 @@ def test_epub_main_json_output():
         mock_details.model_dump_json.assert_called_once_with(indent=2)
 
 
-@patch("sys.argv", ["epub-info", "test.epub", "--include-text"])
+@patch("sys.argv", ["epub-info", "test.epub"])
 def test_epub_main_include_text():
     """Test EPUB CLI with include-text flag."""
     with patch("home_library.cli.epub.parse_epub") as mock_parse:
