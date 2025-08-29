@@ -60,6 +60,20 @@ class Settings(BaseSettings):
         default=768,
         description="Dimension of the embedding vectors.",
     )
+    
+    # Embeddings settings
+    embeddings_model: str = Field(
+        default="all-MiniLM-L6-v2",
+        description="Sentence transformers model to use for embeddings.",
+    )
+    embeddings_device: Literal["cpu", "cuda", "mps"] = Field(
+        default="cpu",
+        description="Device to use for embeddings computation.",
+    )
+    embeddings_batch_size: int = Field(
+        default=32,
+        description="Batch size for processing embeddings.",
+    )
 
     # Pydantic v2 settings config
     model_config = SettingsConfigDict(
