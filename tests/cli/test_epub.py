@@ -1,9 +1,11 @@
 """Tests for the epub CLI command."""
 
+import io
 import json
 import os
 import subprocess
 import sys
+from contextlib import redirect_stdout
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -83,6 +85,7 @@ def _make_sample_epub(tmp_path: Path) -> Path:
 
 class MockTocItem:
     """Mock TOC item for testing."""
+
     def __init__(self, title=None, href=None, children=None):
         self.title = title
         self.href = href
@@ -91,9 +94,6 @@ class MockTocItem:
 
 def test_print_toc_basic():
     """Test basic TOC printing functionality."""
-    import io
-    from contextlib import redirect_stdout
-
     toc = [
         MockTocItem("Chapter 1", "ch1.xhtml"),
         MockTocItem("Chapter 2", "ch2.xhtml"),
@@ -113,14 +113,15 @@ def test_print_toc_basic():
 
 def test_print_toc_nested():
     """Test nested TOC printing with indentation."""
-    import io
-    from contextlib import redirect_stdout
-
     toc = [
-        MockTocItem("Part 1", "part1.xhtml", [
-            MockTocItem("Chapter 1.1", "ch1.1.xhtml"),
-            MockTocItem("Chapter 1.2", "ch1.2.xhtml"),
-        ]),
+        MockTocItem(
+            "Part 1",
+            "part1.xhtml",
+            [
+                MockTocItem("Chapter 1.1", "ch1.1.xhtml"),
+                MockTocItem("Chapter 1.2", "ch1.2.xhtml"),
+            ],
+        ),
         MockTocItem("Part 2", "part2.xhtml"),
     ]
 
@@ -140,9 +141,6 @@ def test_print_toc_nested():
 
 def test_print_toc_untitled_items():
     """Test TOC printing with untitled items."""
-    import io
-    from contextlib import redirect_stdout
-
     toc = [
         MockTocItem(None, "untitled.xhtml"),
         MockTocItem("", "empty.xhtml"),
@@ -162,9 +160,6 @@ def test_print_toc_untitled_items():
 
 def test_print_toc_no_href():
     """Test TOC printing with items that have no href."""
-    import io
-    from contextlib import redirect_stdout
-
     toc = [
         MockTocItem("Chapter 1", None),
         MockTocItem("Chapter 2", ""),
@@ -185,9 +180,6 @@ def test_print_toc_no_href():
 @patch("sys.argv", ["epub-info", "test.epub"])
 def test_epub_main_basic_usage():
     """Test basic EPUB CLI usage without arguments."""
-    import io
-    from contextlib import redirect_stdout
-
     # Mock the parse_epub function to return test data
     mock_details = Mock()
     mock_details.path = "test.epub"
@@ -221,9 +213,6 @@ def test_epub_main_basic_usage():
 @patch("sys.argv", ["epub-info", "test.epub", "--json"])
 def test_epub_main_json_output():
     """Test EPUB CLI with JSON output flag."""
-    import io
-    from contextlib import redirect_stdout
-
     # Mock the parse_epub function
     mock_details = Mock()
     mock_details.model_dump_json.return_value = '{"test": "data"}'
@@ -243,9 +232,6 @@ def test_epub_main_json_output():
 @patch("sys.argv", ["epub-info", "test.epub", "--include-text"])
 def test_epub_main_include_text():
     """Test EPUB CLI with include-text flag."""
-    import io
-    from contextlib import redirect_stdout
-
     with patch("home_library.cli.epub.parse_epub") as mock_parse:
         mock_details = Mock()
         mock_details.path = "test.epub"
@@ -276,9 +262,6 @@ def test_epub_main_with_real_epub(tmp_path):
 
     # Test the CLI by patching sys.argv
     with patch("sys.argv", ["epub-info", str(epub_path)]):
-        import io
-        from contextlib import redirect_stdout
-
         f = io.StringIO()
         with redirect_stdout(f):
             main()
@@ -352,11 +335,12 @@ def test_epub_cli_with_json_flag(tmp_path):
 
 def test_epub_cli_error_handling():
     """Test EPUB CLI error handling for non-existent files."""
-    with patch("sys.argv", ["epub-info", "nonexistent.epub"]):
-
-        # This should raise an exception, so we test that it fails appropriately
-        with pytest.raises(Exception):  # Should fail when file doesn't exist
-            main()
+    # This should raise an exception, so we test that it fails appropriately
+    with (
+        patch("sys.argv", ["epub-info", "nonexistent.epub"]),
+        pytest.raises(FileNotFoundError, match=".*nonexistent\\.epub.*"),
+    ):
+        main()
 
 
 def test_epub_cli_script_entry_point():
@@ -367,9 +351,12 @@ def test_epub_cli_script_entry_point():
 
     # Test the module path that would be used by the script
     proc = subprocess.run(
-        [sys.executable, "-c",
-         f"import sys; sys.path.insert(0, r'{SRC_PATH}'); "
-         "from home_library.cli.epub import main; print('CLI module imported successfully')"],
+        [
+            sys.executable,
+            "-c",
+            f"import sys; sys.path.insert(0, r'{SRC_PATH}'); "
+            "from home_library.cli.epub import main; print('CLI module imported successfully')",
+        ],
         capture_output=True,
         text=True,
         env=env,
@@ -379,4 +366,3 @@ def test_epub_cli_script_entry_point():
     assert proc.returncode == 0
     # Note: stderr might contain warnings, so we don't assert it's empty
     assert "CLI module imported successfully" in proc.stdout
-

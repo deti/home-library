@@ -1,15 +1,17 @@
 """Tests for the show_settings CLI command."""
 
+import io
 import json
 import os
 import subprocess
 import sys
+from contextlib import redirect_stdout
 from pathlib import Path
 
 import pytest
 
 from home_library.cli.show_settings import main
-from home_library.settings import get_settings
+from home_library.settings import Settings, get_settings
 
 
 # Ensure the package can be imported from the src/ layout during tests
@@ -30,9 +32,6 @@ def clear_settings_cache():
 def test_show_settings_main_function():
     """Test that the main function returns settings as JSON."""
     # Capture stdout by temporarily redirecting it
-    import io
-    from contextlib import redirect_stdout
-
     f = io.StringIO()
     with redirect_stdout(f):
         main()
@@ -102,7 +101,6 @@ def test_show_settings_with_environment_overrides(monkeypatch):
     get_settings.cache_clear()
 
     # Test the settings directly to verify environment overrides work
-    from home_library.settings import Settings
     test_settings = Settings()
 
     # Verify environment overrides are applied
@@ -118,9 +116,6 @@ def test_show_settings_with_environment_overrides(monkeypatch):
 
 def test_show_settings_json_format():
     """Test that output is properly formatted JSON with indentation."""
-    import io
-    from contextlib import redirect_stdout
-
     f = io.StringIO()
     with redirect_stdout(f):
         main()
@@ -148,9 +143,12 @@ def test_show_settings_script_entry_point():
 
     # Test the module path that would be used by the script
     proc = subprocess.run(
-        [sys.executable, "-c",
-         f"import sys; sys.path.insert(0, r'{SRC_PATH}'); "
-         "from home_library.cli.show_settings import main; main()"],
+        [
+            sys.executable,
+            "-c",
+            f"import sys; sys.path.insert(0, r'{SRC_PATH}'); "
+            "from home_library.cli.show_settings import main; main()",
+        ],
         capture_output=True,
         text=True,
         env=env,
@@ -163,4 +161,3 @@ def test_show_settings_script_entry_point():
     # Verify output is valid JSON
     output = proc.stdout.strip()
     json.loads(output)  # Should not raise
-
