@@ -15,6 +15,8 @@ dependencies = [
     "beautifulsoup4>=4.12",
     "sentence-transformers>=2.2.2",
     "numpy>=1.24.0",
+    "sqlalchemy>=2.0.0",
+    "alembic>=1.13.0",
 ]
 
 [dependency-groups]
@@ -28,6 +30,8 @@ home-library = "home_library.main:main"
 show-settings = "home_library.cli.show_settings:main"
 epub-info = "home_library.cli.epub:main"
 vectorize-epub = "home_library.cli.vectorize:main"
+db-migrate = "home_library.cli.migrate:main"
+db-upload = "home_library.cli.upload:main"
 
 # Configure hatchling to find packages in src/
 [tool.hatch.build.targets.wheel]

@@ -75,6 +75,16 @@ class Settings(BaseSettings):
         description="Batch size for processing embeddings.",
     )
 
+    # Database settings
+    database_url: str = Field(
+        default="postgresql://home_library_user:home_library_pass@localhost:5432/home_library",
+        description="Database connection URL.",
+    )
+    database_echo: bool = Field(
+        default=False,
+        description="Enable SQLAlchemy echo mode for debugging.",
+    )
+
     # Pydantic v2 settings config
     model_config = SettingsConfigDict(
         # Read .env from the project root
