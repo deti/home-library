@@ -28,7 +28,7 @@ def test_running_module_prints_hello_world():
         env=env,
         check=True,
     )
-    assert proc.stdout.strip() == "You've reached the CLI entry point.\nHello, World!"
+    assert proc.stdout.strip() == "Hello, World!"
     assert proc.returncode == 0
 
 

@@ -23,8 +23,8 @@ dev = [
 
 [project.scripts]
 home-library = "home_library.main:main"
-show-settings = "home_library.main:show_settings"
-epub-info = "home_library.main:describe_epub_main"
+show-settings = "home_library.cli.show_settings:main"
+epub-info = "home_library.cli.epub:main"
 
 # Configure hatchling to find packages in src/
 [tool.hatch.build.targets.wheel]
