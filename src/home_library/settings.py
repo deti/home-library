@@ -43,6 +43,24 @@ class Settings(BaseSettings):
         description="Runtime environment name.",
     )
 
+    # Vectorization settings
+    vectorization_method: Literal["sentence-transformers", "openai", "cohere"] = Field(
+        default="sentence-transformers",
+        description="Vectorization method to use for text embedding.",
+    )
+    chunk_size: int = Field(
+        default=512,
+        description="Number of tokens per text chunk for vectorization.",
+    )
+    chunk_overlap: int = Field(
+        default=50,
+        description="Number of overlapping tokens between consecutive chunks.",
+    )
+    embedding_dimension: int = Field(
+        default=768,
+        description="Dimension of the embedding vectors.",
+    )
+
     # Pydantic v2 settings config
     model_config = SettingsConfigDict(
         # Read .env from the project root
