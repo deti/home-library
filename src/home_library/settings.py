@@ -60,7 +60,7 @@ class Settings(BaseSettings):
         default=768,
         description="Dimension of the embedding vectors.",
     )
-    
+
     # Embeddings settings
     embeddings_model: str = Field(
         default="all-MiniLM-L6-v2",

@@ -6,8 +6,8 @@ import json
 import sys
 from pathlib import Path
 
+from home_library.embeddings import EmbeddingsCreator, create_embeddings_for_epub
 from home_library.vectorizer import get_vectorization_stats, vectorize_epub
-from home_library.embeddings import create_embeddings_for_epub, EmbeddingsCreator
 
 
 def _print_stats(stats: dict) -> None:
@@ -25,14 +25,14 @@ def _print_stats(stats: dict) -> None:
 
     # Configuration
     config = stats["configuration"]
-    print(f"\nConfiguration:")
+    print("\nConfiguration:")
     print(f"  Chunk Size: {config['chunk_size']} tokens")
     print(f"  Chunk Overlap: {config['chunk_overlap']} tokens")
     print(f"  Embedding Dimension: {config['embedding_dimension']}")
     print(f"  Vectorization Method: {config['vectorization_method']}")
 
     # Chapter distribution
-    print(f"\nChunks per Chapter:")
+    print("\nChunks per Chapter:")
     chapter_counts = stats["chunks_per_chapter"]
     for chapter_idx in sorted(chapter_counts.keys()):
         count = chapter_counts[chapter_idx]
@@ -63,28 +63,30 @@ def _print_embeddings_stats(stats: dict) -> None:
     print(f"Processing Time: {stats['processing_time_seconds']} seconds")
 
     # Chunk statistics
-    if 'average_chunk_size' in stats:
-        print(f"\nChunk Statistics:")
+    if "average_chunk_size" in stats:
+        print("\nChunk Statistics:")
         print(f"  Average Chunk Size: {stats['average_chunk_size']} words")
-        print(f"  Chunk Size Range: {stats['chunk_size_range']['min']} - {stats['chunk_size_range']['max']} words")
+        print(
+            f"  Chunk Size Range: {stats['chunk_size_range']['min']} - {stats['chunk_size_range']['max']} words"
+        )
 
     # Embedding statistics
-    if 'embedding_norms' in stats:
-        print(f"\nEmbedding Statistics:")
-        norms = stats['embedding_norms']
+    if "embedding_norms" in stats:
+        print("\nEmbedding Statistics:")
+        norms = stats["embedding_norms"]
         print(f"  Average L2 Norm: {norms['average']}")
         print(f"  Norm Range: {norms['min']} - {norms['max']}")
 
     # Efficiency metrics
-    if 'efficiency' in stats:
-        print(f"\nEfficiency Metrics:")
-        eff = stats['efficiency']
+    if "efficiency" in stats:
+        print("\nEfficiency Metrics:")
+        eff = stats["efficiency"]
         print(f"  Chunks per Second: {eff['chunks_per_second']}")
         print(f"  Words per Second: {eff['words_per_second']}")
 
     # Chapter distribution
-    if 'chunks_per_chapter' in stats:
-        print(f"\nChunks per Chapter:")
+    if "chunks_per_chapter" in stats:
+        print("\nChunks per Chapter:")
         chapter_counts = stats["chunks_per_chapter"]
         for chapter_idx in sorted(chapter_counts.keys()):
             count = chapter_counts[chapter_idx]
@@ -121,13 +123,66 @@ def _print_detailed_embeddings(result) -> None:
         if chunk.chapter_title:
             chapter_info += f" ({chunk.chapter_title})"
 
-        print(f"\nChunk {i+1}:")
+        print(f"\nChunk {i + 1}:")
         print(f"  ID: {chunk.chunk_id}")
         print(f"  Source: {chapter_info}")
         print(f"  Position: tokens {chunk.start_token}-{chunk.end_token}")
         print(f"  Word Count: {chunk.word_count}")
         print(f"  Embedding Norm: {embedding_chunk.embedding_norm:.4f}")
-        print(f"  Text Preview: {chunk.text[:100]}{'...' if len(chunk.text) > 100 else ''}")
+        print(
+            f"  Text Preview: {chunk.text[:100]}{'...' if len(chunk.text) > 100 else ''}"
+        )
+
+
+def _handle_embeddings_output(result, stats, args):
+    """Handle output formatting for embeddings results."""
+    if args.json:
+        # JSON output
+        try:
+            output_data = {
+                "stats": stats,
+                "chunks": [
+                    {
+                        "chunk": chunk.chunk.model_dump(),
+                        "embedding": chunk.embedding,
+                        "embedding_norm": chunk.embedding_norm,
+                    }
+                    for chunk in result.chunks
+                ],
+            }
+            print(json.dumps(output_data, indent=2))
+        except (TypeError, AttributeError):
+            sys.stderr.write("Error: Cannot serialize embeddings to JSON\n")
+            return 1
+    else:
+        # Human-readable output
+        _print_embeddings_stats(stats)
+
+        if args.detailed:
+            _print_detailed_embeddings(result)
+    return 0
+
+
+def _handle_vectorization_output(result, stats, args):
+    """Handle output formatting for vectorization results."""
+    if args.json:
+        # JSON output
+        try:
+            output_data = {
+                "stats": stats,
+                "chunks": [chunk.model_dump() for chunk in result.chunks],
+            }
+            print(json.dumps(output_data, indent=2))
+        except (TypeError, AttributeError):
+            sys.stderr.write("Error: Cannot serialize chunks to JSON\n")
+            return 1
+    else:
+        # Human-readable output
+        _print_stats(stats)
+
+        if args.detailed:
+            _print_detailed_chunks(result)
+    return 0
 
 
 def main() -> None:
@@ -136,10 +191,11 @@ def main() -> None:
     Usage: vectorize-epub /path/to/book.epub [--create-embeddings] [--model NAME] [--device DEVICE] [--batch-size N] [--chunk-size N] [--chunk-overlap N] [--detailed] [--json]
     """
     parser = argparse.ArgumentParser(
-        prog="vectorize-epub", description="Vectorize EPUB files and create embeddings for RAG systems"
+        prog="vectorize-epub",
+        description="Vectorize EPUB files and create embeddings for RAG systems",
     )
     parser.add_argument("path", help="Path to .epub file")
-    
+
     # Vectorization options
     parser.add_argument(
         "--chunk-size", type=int, help="Override default chunk size (in tokens)"
@@ -147,29 +203,27 @@ def main() -> None:
     parser.add_argument(
         "--chunk-overlap", type=int, help="Override default chunk overlap (in tokens)"
     )
-    
+
     # Embeddings options
     parser.add_argument(
-        "--create-embeddings", 
-        action="store_true", 
-        help="Create embeddings in addition to vectorization"
+        "--create-embeddings",
+        action="store_true",
+        help="Create embeddings in addition to vectorization",
     )
     parser.add_argument(
-        "--model", 
-        type=str, 
-        help="Override default sentence-transformers model"
+        "--model", type=str, help="Override default sentence-transformers model"
     )
     parser.add_argument(
-        "--device", 
-        choices=["cpu", "cuda", "mps"], 
-        help="Override default device for embeddings computation"
+        "--device",
+        choices=["cpu", "cuda", "mps"],
+        help="Override default device for embeddings computation",
     )
     parser.add_argument(
-        "--batch-size", 
-        type=int, 
-        help="Override default batch size for embeddings processing"
+        "--batch-size",
+        type=int,
+        help="Override default batch size for embeddings processing",
     )
-    
+
     # Output options
     parser.add_argument(
         "--detailed",
@@ -202,69 +256,28 @@ def main() -> None:
                 device=args.device,
                 batch_size=args.batch_size,
                 chunk_size=args.chunk_size,
-                chunk_overlap=args.chunk_overlap
+                chunk_overlap=args.chunk_overlap,
             )
-            
+
             # Get embeddings statistics
             creator = EmbeddingsCreator(args.model, args.device, args.batch_size)
             stats = creator.get_embeddings_stats(result)
-            
-            if args.json:
-                # JSON output
-                try:
-                    output_data = {
-                        "stats": stats,
-                        "chunks": [
-                            {
-                                "chunk": chunk.chunk.model_dump(),
-                                "embedding": chunk.embedding,
-                                "embedding_norm": chunk.embedding_norm
-                            }
-                            for chunk in result.chunks
-                        ],
-                    }
-                    print(json.dumps(output_data, indent=2))
-                except (TypeError, AttributeError):
-                    sys.stderr.write("Error: Cannot serialize embeddings to JSON\n")
-                    return 1
-            else:
-                # Human-readable output
-                _print_embeddings_stats(stats)
-                
-                if args.detailed:
-                    _print_detailed_embeddings(result)
-        else:
-            # Just vectorization (original functionality)
-            result = vectorize_epub(
-                str(file_path), chunk_size=args.chunk_size, chunk_overlap=args.chunk_overlap
-            )
-            
-            # Get statistics
-            stats = get_vectorization_stats(result)
-            
-            if args.json:
-                # JSON output
-                try:
-                    output_data = {
-                        "stats": stats,
-                        "chunks": [chunk.model_dump() for chunk in result.chunks],
-                    }
-                    print(json.dumps(output_data, indent=2))
-                except (TypeError, AttributeError):
-                    sys.stderr.write("Error: Cannot serialize chunks to JSON\n")
-                    return 1
-            else:
-                # Human-readable output
-                _print_stats(stats)
-                
-                if args.detailed:
-                    _print_detailed_chunks(result)
+
+            return _handle_embeddings_output(result, stats, args)
+
+        # Just vectorization (original functionality)
+        result = vectorize_epub(
+            str(file_path), chunk_size=args.chunk_size, chunk_overlap=args.chunk_overlap
+        )
+
+        # Get statistics
+        stats = get_vectorization_stats(result)
+
+        return _handle_vectorization_output(result, stats, args)
 
     except Exception as e:
-        sys.stderr.write(f"Error processing EPUB file: {str(e)}\n")
+        sys.stderr.write(f"Error processing EPUB file: {e!s}\n")
         return 1
-    else:
-        return 0
 
 
 if __name__ == "__main__":  # pragma: no cover - CLI entry point

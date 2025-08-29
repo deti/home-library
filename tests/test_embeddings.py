@@ -1,15 +1,14 @@
 """Tests for the embeddings module."""
 
-import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
+
 import numpy as np
-from pathlib import Path
 
 from home_library.embeddings import (
-    EmbeddingsCreator,
-    create_embeddings_for_epub,
     EmbeddingChunk,
+    EmbeddingsCreator,
     EmbeddingsResult,
+    create_embeddings_for_epub,
 )
 from home_library.vectorizer import TextChunk
 
@@ -28,16 +27,16 @@ class TestEmbeddingChunk:
             end_token=10,
             word_count=10,
         )
-        
+
         embedding = [0.1, 0.2, 0.3]
         embedding_norm = 0.3742
-        
+
         embedding_chunk = EmbeddingChunk(
             chunk=chunk,
             embedding=embedding,
             embedding_norm=embedding_norm,
         )
-        
+
         assert embedding_chunk.chunk == chunk
         assert embedding_chunk.embedding == embedding
         assert embedding_chunk.embedding_norm == embedding_norm
@@ -60,7 +59,7 @@ class TestEmbeddingsResult:
             chunks=chunks,
             processing_time_seconds=1.5,
         )
-        
+
         assert result.file_path == "/test/path.epub"
         assert result.total_chunks == 0
         assert result.total_words == 0
@@ -85,14 +84,14 @@ class TestEmbeddingsCreator:
         mock_settings.embeddings_device = "cpu"
         mock_settings.embeddings_batch_size = 32
         mock_get_settings.return_value = mock_settings
-        
+
         # Mock SentenceTransformer
         mock_model = Mock()
         mock_model.get_sentence_embedding_dimension.return_value = 384
         mock_sentence_transformer.return_value = mock_model
-        
+
         creator = EmbeddingsCreator()
-        
+
         assert creator.model_name == "default-model"
         assert creator.device == "cpu"
         assert creator.batch_size == 32
@@ -109,18 +108,16 @@ class TestEmbeddingsCreator:
         mock_settings.embeddings_device = "cpu"
         mock_settings.embeddings_batch_size = 32
         mock_get_settings.return_value = mock_settings
-        
+
         # Mock SentenceTransformer
         mock_model = Mock()
         mock_model.get_sentence_embedding_dimension.return_value = 768
         mock_sentence_transformer.return_value = mock_model
-        
+
         creator = EmbeddingsCreator(
-            model_name="custom-model",
-            device="cuda",
-            batch_size=64
+            model_name="custom-model", device="cuda", batch_size=64
         )
-        
+
         assert creator.model_name == "custom-model"
         assert creator.device == "cuda"
         assert creator.batch_size == 64
@@ -140,7 +137,7 @@ class TestEmbeddingsCreator:
         mock_settings.embeddings_device = "cpu"
         mock_settings.embeddings_batch_size = 32
         mock_get_settings.return_value = mock_settings
-        
+
         # Mock vectorization result
         mock_chunk = TextChunk(
             text="Test text content",
@@ -155,21 +152,21 @@ class TestEmbeddingsCreator:
         mock_vectorization_result.chunks = [mock_chunk]
         mock_vectorization_result.total_words = 10
         mock_vectorize_epub.return_value = mock_vectorization_result
-        
+
         # Mock SentenceTransformer
         mock_model = Mock()
         mock_model.get_sentence_embedding_dimension.return_value = 384
         mock_model.encode.return_value = np.array([[0.1, 0.2, 0.3]])
         mock_sentence_transformer.return_value = mock_model
-        
+
         creator = EmbeddingsCreator()
         result = creator.create_embeddings_for_epub("/test/path.epub")
-        
+
         assert result.total_chunks == 1
         assert result.total_words == 10
         assert result.embedding_dimension == 384
         assert len(result.chunks) == 1
-        
+
         chunk = result.chunks[0]
         assert chunk.chunk == mock_chunk
         assert chunk.embedding == [0.1, 0.2, 0.3]
@@ -188,21 +185,21 @@ class TestEmbeddingsCreator:
         mock_settings.embeddings_device = "cpu"
         mock_settings.embeddings_batch_size = 32
         mock_get_settings.return_value = mock_settings
-        
+
         # Mock empty vectorization result
         mock_vectorization_result = Mock()
         mock_vectorization_result.chunks = []
         mock_vectorization_result.total_words = 0
         mock_vectorize_epub.return_value = mock_vectorization_result
-        
+
         # Mock SentenceTransformer
         mock_model = Mock()
         mock_model.get_sentence_embedding_dimension.return_value = 384
         mock_sentence_transformer.return_value = mock_model
-        
+
         creator = EmbeddingsCreator()
         result = creator.create_embeddings_for_epub("/test/path.epub")
-        
+
         assert result.total_chunks == 0
         assert result.total_words == 0
         assert result.chunks == []
@@ -220,30 +217,24 @@ class TestEmbeddingsCreator:
         mock_settings.embeddings_device = "cpu"
         mock_settings.embeddings_batch_size = 32
         mock_get_settings.return_value = mock_settings
-        
+
         # Mock vectorization result
         mock_vectorization_result = Mock()
         mock_vectorization_result.chunks = []
         mock_vectorization_result.total_words = 0
         mock_vectorize_epub.return_value = mock_vectorization_result
-        
+
         # Mock SentenceTransformer
         mock_model = Mock()
         mock_model.get_sentence_embedding_dimension.return_value = 384
         mock_sentence_transformer.return_value = mock_model
-        
+
         creator = EmbeddingsCreator()
         creator.create_embeddings_for_epub(
-            "/test/path.epub",
-            chunk_size=256,
-            chunk_overlap=25
+            "/test/path.epub", chunk_size=256, chunk_overlap=25
         )
-        
-        mock_vectorize_epub.assert_called_once_with(
-            "/test/path.epub",
-            256,
-            25
-        )
+
+        mock_vectorize_epub.assert_called_once_with("/test/path.epub", 256, 25)
 
     def test_get_embeddings_stats_empty_result(self):
         """Test getting stats for an empty embeddings result."""
@@ -258,10 +249,10 @@ class TestEmbeddingsCreator:
             chunks=[],
             processing_time_seconds=1.0,
         )
-        
+
         creator = EmbeddingsCreator()
         stats = creator.get_embeddings_stats(empty_result)
-        
+
         assert stats["total_chunks"] == 0
         assert stats["total_words"] == 0
         assert stats["message"] == "No chunks processed"
@@ -287,7 +278,7 @@ class TestEmbeddingsCreator:
             end_token=20,
             word_count=10,
         )
-        
+
         embedding_chunk1 = EmbeddingChunk(
             chunk=chunk1,
             embedding=[0.1, 0.2, 0.3],
@@ -298,7 +289,7 @@ class TestEmbeddingsCreator:
             embedding=[0.4, 0.5, 0.6],
             embedding_norm=0.8771,
         )
-        
+
         result = EmbeddingsResult(
             file_path="/test/path.epub",
             total_chunks=2,
@@ -310,10 +301,10 @@ class TestEmbeddingsCreator:
             chunks=[embedding_chunk1, embedding_chunk2],
             processing_time_seconds=2.0,
         )
-        
+
         creator = EmbeddingsCreator()
         stats = creator.get_embeddings_stats(result)
-        
+
         assert stats["total_chunks"] == 2
         assert stats["total_words"] == 20
         assert stats["average_chunk_size"] == 10.0
@@ -337,21 +328,19 @@ class TestConvenienceFunctions:
         mock_creator = Mock()
         mock_creator.create_embeddings_for_epub.return_value = "test_result"
         mock_creator_class.return_value = mock_creator
-        
+
         result = create_embeddings_for_epub(
             "/test/path.epub",
             model_name="test-model",
             device="cuda",
             batch_size=64,
             chunk_size=256,
-            chunk_overlap=25
+            chunk_overlap=25,
         )
-        
+
         mock_creator_class.assert_called_once_with("test-model", "cuda", 64)
         mock_creator.create_embeddings_for_epub.assert_called_once_with(
-            "/test/path.epub",
-            256,
-            25
+            "/test/path.epub", 256, 25
         )
         assert result == "test_result"
 
@@ -372,7 +361,7 @@ class TestIntegration:
         mock_settings.embeddings_device = "cpu"
         mock_settings.embeddings_batch_size = 32
         mock_get_settings.return_value = mock_settings
-        
+
         # Mock vectorization result with multiple chunks
         chunks = [
             TextChunk(
@@ -386,24 +375,25 @@ class TestIntegration:
             )
             for i in range(3)
         ]
-        
+
         mock_vectorization_result = Mock()
         mock_vectorization_result.chunks = chunks
         mock_vectorization_result.total_words = 30
         mock_vectorize_epub.return_value = mock_vectorization_result
-        
+
         # Mock SentenceTransformer with realistic embeddings
         mock_model = Mock()
         mock_model.get_sentence_embedding_dimension.return_value = 384
         # Create realistic-looking embeddings
-        mock_embeddings = np.random.rand(3, 384).astype(np.float32)
+        rng = np.random.default_rng(42)  # Use fixed seed for reproducible tests
+        mock_embeddings = rng.random((3, 384)).astype(np.float32)
         mock_model.encode.return_value = mock_embeddings
         mock_sentence_transformer.return_value = mock_model
-        
+
         # Run the pipeline
         creator = EmbeddingsCreator()
         result = creator.create_embeddings_for_epub("/test/path.epub")
-        
+
         # Verify results
         assert result.total_chunks == 3
         assert result.total_words == 30
@@ -412,13 +402,13 @@ class TestIntegration:
         assert result.device == "cpu"
         assert result.batch_size == 32
         assert len(result.chunks) == 3
-        
+
         # Verify each chunk has proper embeddings
         for i, embedding_chunk in enumerate(result.chunks):
             assert embedding_chunk.chunk == chunks[i]
             assert len(embedding_chunk.embedding) == 384
             assert embedding_chunk.embedding_norm > 0
-        
+
         # Verify the model was called correctly
         mock_model.encode.assert_called_once()
         call_args = mock_model.encode.call_args

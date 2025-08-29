@@ -5,7 +5,15 @@ import tempfile
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from home_library.cli.vectorize import _print_detailed_chunks, _print_stats, _print_embeddings_stats, _print_detailed_embeddings, main
+import pytest
+
+from home_library.cli.vectorize import (
+    _print_detailed_chunks,
+    _print_detailed_embeddings,
+    _print_embeddings_stats,
+    _print_stats,
+    main,
+)
 
 
 class TestPrintStats:
@@ -155,7 +163,7 @@ class TestPrintDetailedEmbeddings:
             word_count=75,
             text="This is the second chunk from a different chapter.",
         )
-        
+
         embedding_chunks = [
             Mock(chunk=mock_chunk1, embedding_norm=0.5),
             Mock(chunk=mock_chunk2, embedding_norm=0.7),
@@ -173,8 +181,11 @@ class TestPrintDetailedEmbeddings:
         assert "Position: tokens 0-100" in captured.out
         assert "Word Count: 50" in captured.out
         assert "Embedding Norm: 0.5000" in captured.out
-        assert "Text Preview: This is the first chunk with some sample text content." in captured.out
-        
+        assert (
+            "Text Preview: This is the first chunk with some sample text content."
+            in captured.out
+        )
+
         assert "Chunk 2:" in captured.out
         assert "ID: chunk_1_0" in captured.out
         assert "Source: Chapter 1 (Chapter 1)" in captured.out
@@ -235,7 +246,9 @@ class TestCLIVectorize:
 
     @patch("home_library.cli.vectorize.create_embeddings_for_epub")
     @patch("home_library.cli.vectorize.EmbeddingsCreator")
-    def test_main_success_with_embeddings(self, mock_creator_class, mock_create_embeddings, capsys):
+    def test_main_success_with_embeddings(
+        self, mock_creator_class, mock_create_embeddings, capsys
+    ):
         """Test successful embeddings creation."""
         # Mock the embeddings result
         mock_result = Mock()
@@ -285,8 +298,12 @@ class TestCLIVectorize:
 
                 # Verify functions were called
                 mock_create_embeddings.assert_called_once_with(
-                    tmp_path, model_name=None, device=None, batch_size=None, 
-                    chunk_size=None, chunk_overlap=None
+                    tmp_path,
+                    model_name=None,
+                    device=None,
+                    batch_size=None,
+                    chunk_size=None,
+                    chunk_overlap=None,
                 )
                 mock_creator_class.assert_called_once_with(None, None, None)
                 mock_creator.get_embeddings_stats.assert_called_once_with(mock_result)
@@ -295,7 +312,9 @@ class TestCLIVectorize:
 
     @patch("home_library.cli.vectorize.create_embeddings_for_epub")
     @patch("home_library.cli.vectorize.EmbeddingsCreator")
-    def test_main_success_with_embeddings_custom_params(self, mock_creator_class, mock_create_embeddings):
+    def test_main_success_with_embeddings_custom_params(
+        self, mock_creator_class, mock_create_embeddings
+    ):
         """Test successful embeddings creation with custom parameters."""
         # Mock the embeddings result
         mock_result = Mock()
@@ -327,19 +346,36 @@ class TestCLIVectorize:
 
         try:
             # Mock sys.argv
-            with patch("sys.argv", [
-                "vectorize-epub", tmp_path, "--create-embeddings", 
-                "--model", "custom-model", "--device", "cuda", "--batch-size", "64",
-                "--chunk-size", "256", "--chunk-overlap", "25"
-            ]):
+            with patch(
+                "sys.argv",
+                [
+                    "vectorize-epub",
+                    tmp_path,
+                    "--create-embeddings",
+                    "--model",
+                    "custom-model",
+                    "--device",
+                    "cuda",
+                    "--batch-size",
+                    "64",
+                    "--chunk-size",
+                    "256",
+                    "--chunk-overlap",
+                    "25",
+                ],
+            ):
                 result = main()
 
                 assert result == 0
 
                 # Verify functions were called with custom parameters
                 mock_create_embeddings.assert_called_once_with(
-                    tmp_path, model_name="custom-model", device="cuda", batch_size=64,
-                    chunk_size=256, chunk_overlap=25
+                    tmp_path,
+                    model_name="custom-model",
+                    device="cuda",
+                    batch_size=64,
+                    chunk_size=256,
+                    chunk_overlap=25,
                 )
                 mock_creator_class.assert_called_once_with("custom-model", "cuda", 64)
         finally:
@@ -347,7 +383,9 @@ class TestCLIVectorize:
 
     @patch("home_library.cli.vectorize.create_embeddings_for_epub")
     @patch("home_library.cli.vectorize.EmbeddingsCreator")
-    def test_main_success_with_embeddings_detailed(self, mock_creator_class, mock_create_embeddings, capsys):
+    def test_main_success_with_embeddings_detailed(
+        self, mock_creator_class, mock_create_embeddings, capsys
+    ):
         """Test successful embeddings creation with detailed output."""
         # Mock the embeddings result
         mock_chunk = Mock(
@@ -384,7 +422,10 @@ class TestCLIVectorize:
 
         try:
             # Mock sys.argv
-            with patch("sys.argv", ["vectorize-epub", tmp_path, "--create-embeddings", "--detailed"]):
+            with patch(
+                "sys.argv",
+                ["vectorize-epub", tmp_path, "--create-embeddings", "--detailed"],
+            ):
                 result = main()
 
                 assert result == 0
@@ -397,7 +438,9 @@ class TestCLIVectorize:
 
     @patch("home_library.cli.vectorize.create_embeddings_for_epub")
     @patch("home_library.cli.vectorize.EmbeddingsCreator")
-    def test_main_success_with_embeddings_json(self, mock_creator_class, mock_create_embeddings, capsys):
+    def test_main_success_with_embeddings_json(
+        self, mock_creator_class, mock_create_embeddings, capsys
+    ):
         """Test successful embeddings creation with JSON output."""
         # Mock the embeddings result
         mock_chunk = Mock(
@@ -410,9 +453,7 @@ class TestCLIVectorize:
             text="Sample text content for testing.",
         )
         mock_embedding_chunk = Mock(
-            chunk=mock_chunk, 
-            embedding=[0.1, 0.2, 0.3], 
-            embedding_norm=0.5
+            chunk=mock_chunk, embedding=[0.1, 0.2, 0.3], embedding_norm=0.5
         )
         mock_chunk.model_dump.return_value = {
             "chunk_id": "chunk_0_0",
@@ -447,22 +488,25 @@ class TestCLIVectorize:
 
         try:
             # Mock sys.argv
-            with patch("sys.argv", ["vectorize-epub", tmp_path, "--create-embeddings", "--json"]):
+            with patch(
+                "sys.argv",
+                ["vectorize-epub", tmp_path, "--create-embeddings", "--json"],
+            ):
                 result = main()
 
                 assert result == 0
                 captured = capsys.readouterr()
 
                 # Parse JSON output - extract just the JSON part
-                output_lines = captured.out.strip().split('\n')
+                output_lines = captured.out.strip().split("\n")
                 json_start = None
                 for i, line in enumerate(output_lines):
-                    if line.strip().startswith('{'):
+                    if line.strip().startswith("{"):
                         json_start = i
                         break
-                
+
                 if json_start is not None:
-                    json_content = '\n'.join(output_lines[json_start:])
+                    json_content = "\n".join(output_lines[json_start:])
                     output_data = json.loads(json_content)
                     assert "stats" in output_data
                     assert "chunks" in output_data
@@ -472,7 +516,7 @@ class TestCLIVectorize:
                     assert "embedding" in output_data["chunks"][0]
                     assert "embedding_norm" in output_data["chunks"][0]
                 else:
-                    assert False, "No JSON content found in output"
+                    pytest.fail("No JSON content found in output")
         finally:
             Path(tmp_path).unlink(missing_ok=True)
 
@@ -695,8 +739,7 @@ class TestCLIVectorize:
             Path(tmp_path).unlink(missing_ok=True)
 
     @patch("home_library.cli.vectorize.create_embeddings_for_epub")
-    @patch("home_library.cli.vectorize.EmbeddingsCreator")
-    def test_main_embeddings_error(self, mock_creator_class, mock_create_embeddings, capsys):
+    def test_main_embeddings_error(self, mock_create_embeddings, capsys):
         """Test CLI when embeddings creation fails."""
         # Mock embeddings creation to raise an exception
         mock_create_embeddings.side_effect = Exception("Embeddings creation failed")
@@ -713,7 +756,8 @@ class TestCLIVectorize:
                 assert result == 1
                 captured = capsys.readouterr()
                 assert (
-                    "Error processing EPUB file: Embeddings creation failed" in captured.err
+                    "Error processing EPUB file: Embeddings creation failed"
+                    in captured.err
                 )
         finally:
             Path(tmp_path).unlink(missing_ok=True)
