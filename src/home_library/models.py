@@ -5,13 +5,10 @@ text chunks, and embeddings for RAG functionality.
 """
 
 from datetime import datetime
-from typing import Optional
 from uuid import uuid4
 
 from sqlalchemy import (
-    Column,
     DateTime,
-    Float,
     ForeignKey,
     Index,
     Integer,
@@ -20,8 +17,9 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import declarative_base, Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, declarative_base, mapped_column, relationship
 from sqlalchemy.sql import func
+
 
 Base = declarative_base()
 
@@ -35,10 +33,10 @@ class Epub(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid4
     )
     file_path: Mapped[str] = mapped_column(String(500), nullable=False, unique=True)
-    title: Mapped[Optional[str]] = mapped_column(String(500))
-    author: Mapped[Optional[str]] = mapped_column(String(500))
-    language: Mapped[Optional[str]] = mapped_column(String(10))
-    file_size: Mapped[Optional[int]] = mapped_column(Integer)
+    title: Mapped[str | None] = mapped_column(String(500))
+    author: Mapped[str | None] = mapped_column(String(500))
+    language: Mapped[str | None] = mapped_column(String(10))
+    file_size: Mapped[int | None] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -71,8 +69,8 @@ class Chapter(Base):
         UUID(as_uuid=True), ForeignKey("epubs.id"), nullable=False
     )
     chapter_index: Mapped[int] = mapped_column(Integer, nullable=False)
-    title: Mapped[Optional[str]] = mapped_column(String(500))
-    file_name: Mapped[Optional[str]] = mapped_column(String(500))
+    title: Mapped[str | None] = mapped_column(String(500))
+    file_name: Mapped[str | None] = mapped_column(String(500))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

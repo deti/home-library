@@ -1,10 +1,8 @@
 """Tests for the database models."""
 
-import pytest
-from datetime import datetime
-from uuid import UUID, uuid4
+from uuid import uuid4
 
-from home_library.models import Base, Epub, Chapter, TextChunk, Embedding
+from home_library.models import Chapter, Embedding, Epub, TextChunk
 
 
 class TestEpub:
@@ -19,7 +17,7 @@ class TestEpub:
             language="en",
             file_size=1024
         )
-        
+
         assert epub.file_path == "/path/to/book.epub"
         assert epub.title == "Test Book"
         assert epub.author == "Test Author"
@@ -35,7 +33,7 @@ class TestEpub:
             title="Test Book",
             author="Test Author"
         )
-        
+
         repr_str = repr(epub)
         assert "Epub" in repr_str
         assert "Test Book" in repr_str
@@ -44,7 +42,7 @@ class TestEpub:
     def test_epub_defaults(self):
         """Test Epub model default values."""
         epub = Epub(file_path="/path/to/book.epub")
-        
+
         assert epub.title is None
         assert epub.author is None
         assert epub.language is None
@@ -65,7 +63,7 @@ class TestChapter:
             title="Chapter 1",
             file_name="chapter1.xhtml"
         )
-        
+
         assert chapter.epub_id == epub_id
         assert chapter.chapter_index == 1
         assert chapter.title == "Chapter 1"
@@ -81,7 +79,7 @@ class TestChapter:
             chapter_index=1,
             title="Chapter 1"
         )
-        
+
         repr_str = repr(chapter)
         assert "Chapter" in repr_str
         assert "1" in repr_str
@@ -94,7 +92,7 @@ class TestChapter:
             epub_id=epub_id,
             chapter_index=1
         )
-        
+
         assert chapter.title is None
         assert chapter.file_name is None
         assert chapter.created_at is None
@@ -107,7 +105,7 @@ class TestTextChunk:
         """Test TextChunk model creation."""
         epub_id = uuid4()
         chapter_id = uuid4()
-        
+
         chunk = TextChunk(
             epub_id=epub_id,
             chapter_id=chapter_id,
@@ -117,7 +115,7 @@ class TestTextChunk:
             end_token=10,
             word_count=8
         )
-        
+
         assert chunk.epub_id == epub_id
         assert chunk.chapter_id == chapter_id
         assert chunk.chunk_index == 0
@@ -132,7 +130,7 @@ class TestTextChunk:
         """Test TextChunk model string representation."""
         epub_id = uuid4()
         chapter_id = uuid4()
-        
+
         chunk = TextChunk(
             epub_id=epub_id,
             chapter_id=chapter_id,
@@ -142,7 +140,7 @@ class TestTextChunk:
             end_token=5,
             word_count=2
         )
-        
+
         repr_str = repr(chunk)
         assert "TextChunk" in repr_str
         assert "0" in repr_str
@@ -152,7 +150,7 @@ class TestTextChunk:
         """Test TextChunk model default values."""
         epub_id = uuid4()
         chapter_id = uuid4()
-        
+
         chunk = TextChunk(
             epub_id=epub_id,
             chapter_id=chapter_id,
@@ -162,7 +160,7 @@ class TestTextChunk:
             end_token=1,
             word_count=1
         )
-        
+
         assert chunk.created_at is None
 
 
@@ -173,14 +171,14 @@ class TestEmbedding:
         """Test Embedding model creation."""
         chunk_id = uuid4()
         vector = [0.1, 0.2, 0.3, 0.4, 0.5]
-        
+
         embedding = Embedding(
             chunk_id=chunk_id,
             vector=str(vector),  # Store as string for now
             model_name="test-model",
             embedding_dimension=5
         )
-        
+
         assert embedding.chunk_id == chunk_id
         assert embedding.vector == str(vector)
         assert embedding.model_name == "test-model"
@@ -192,14 +190,14 @@ class TestEmbedding:
         """Test Embedding model string representation."""
         chunk_id = uuid4()
         vector = [0.1, 0.2, 0.3]
-        
+
         embedding = Embedding(
             chunk_id=chunk_id,
             vector=str(vector),
             model_name="test-model",
             embedding_dimension=3
         )
-        
+
         repr_str = repr(embedding)
         assert "Embedding" in repr_str
         assert "test-model" in repr_str
@@ -209,14 +207,14 @@ class TestEmbedding:
         """Test Embedding model default values."""
         chunk_id = uuid4()
         vector = [0.1, 0.2]
-        
+
         embedding = Embedding(
             chunk_id=chunk_id,
             vector=str(vector),
             model_name="test-model",
             embedding_dimension=2
         )
-        
+
         assert embedding.created_at is None
 
 
@@ -231,12 +229,12 @@ class TestModelRelationships:
             chapter_index=1,
             title="Chapter 1"
         )
-        
+
         # Test forward relationship
         epub.chapters.append(chapter)
         assert len(epub.chapters) == 1
         assert epub.chapters[0] == chapter
-        
+
         # Test backward relationship
         assert chapter.epub == epub
 
@@ -252,12 +250,12 @@ class TestModelRelationships:
             end_token=5,
             word_count=2
         )
-        
+
         # Test forward relationship
         epub.chunks.append(chunk)
         assert len(epub.chunks) == 1
         assert epub.chunks[0] == chunk
-        
+
         # Test backward relationship
         assert chunk.epub == epub
 
@@ -278,12 +276,12 @@ class TestModelRelationships:
             end_token=5,
             word_count=2
         )
-        
+
         # Test forward relationship
         chapter.chunks.append(chunk)
         assert len(chapter.chunks) == 1
         assert chapter.chunks[0] == chunk
-        
+
         # Test backward relationship
         assert chunk.chapter == chapter
 
@@ -304,11 +302,11 @@ class TestModelRelationships:
             model_name="test-model",
             embedding_dimension=3
         )
-        
+
         # Test forward relationship
         chunk.embedding = embedding
         assert chunk.embedding == embedding
-        
+
         # Test backward relationship
         assert embedding.chunk == chunk
 
@@ -321,17 +319,17 @@ class TestModelConstraints:
         # This would be tested at the database level
         # For now, we just verify the constraint is defined
         epub_table = Epub.__table__
-        unique_constraints = [c for c in epub_table.constraints if c.name == 'uq_epub_file_path']
+        unique_constraints = [c for c in epub_table.constraints if c.name == "uq_epub_file_path"]
         assert len(unique_constraints) == 1
 
     def test_chapter_epub_chapter_index_unique(self):
         """Test that chapter index must be unique per EPUB."""
         chapter_table = Chapter.__table__
-        unique_constraints = [c for c in chapter_table.constraints if c.name == 'uq_epub_chapter_index']
+        unique_constraints = [c for c in chapter_table.constraints if c.name == "uq_epub_chapter_index"]
         assert len(unique_constraints) == 1
 
     def test_chunk_epub_chapter_chunk_unique(self):
         """Test that chunk index must be unique per chapter per EPUB."""
         chunk_table = TextChunk.__table__
-        unique_constraints = [c for c in chunk_table.constraints if c.name == 'uq_epub_chapter_chunk']
+        unique_constraints = [c for c in chunk_table.constraints if c.name == "uq_epub_chapter_chunk"]
         assert len(unique_constraints) == 1

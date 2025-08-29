@@ -4,9 +4,9 @@ This module provides database connection management and session handling
 for the SQLAlchemy ORM operations.
 """
 
-import json
+from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Any, Generator
+from typing import Any
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
@@ -66,7 +66,7 @@ class DatabaseService:
         self.create_tables()
 
     @contextmanager
-    def get_session(self) -> Generator[Session, None, None]:
+    def get_session(self) -> Generator[Session]:
         """Get a database session with automatic cleanup."""
         session = self.SessionLocal()
         try:
@@ -83,9 +83,10 @@ class DatabaseService:
         try:
             with self.engine.connect() as conn:
                 conn.execute(text("SELECT 1"))
-            return True
         except Exception:
             return False
+        else:
+            return True
 
     def get_database_info(self) -> dict[str, Any]:
         """Get information about the database."""
@@ -93,24 +94,24 @@ class DatabaseService:
             with self.engine.connect() as conn:
                 # Get table counts
                 result = conn.execute(text("""
-                    SELECT 
+                    SELECT
                         schemaname,
                         tablename,
                         n_tup_ins as inserts,
                         n_tup_upd as updates,
                         n_tup_del as deletes
-                    FROM pg_stat_user_tables 
+                    FROM pg_stat_user_tables
                     WHERE schemaname = 'public'
                     ORDER BY tablename
                 """))
-                table_stats = [dict(row._mapping) for row in result]
-                
+                table_stats = [dict(row._asdict()) for row in result]
+
                 # Get database size
                 result = conn.execute(text("""
                     SELECT pg_size_pretty(pg_database_size(current_database())) as size
                 """))
                 db_size = result.fetchone()[0] if result.rowcount > 0 else "Unknown"
-                
+
                 return {
                     "database_url": str(self.engine.url),
                     "database_size": db_size,

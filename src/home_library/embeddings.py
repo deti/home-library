@@ -235,16 +235,16 @@ def create_embeddings_for_epub(
 
 def get_embeddings_model(model_name: str | None = None, device: str | None = None) -> SentenceTransformer:
     """Get a sentence transformer model instance.
-    
+
     Args:
         model_name: Override default model name from settings
         device: Override default device from settings
-        
+
     Returns:
         SentenceTransformer model instance
     """
     settings = get_settings()
     model_name = model_name or settings.embeddings_model
     device = device or settings.embeddings_device
-    
+
     return SentenceTransformer(model_name, device=device)
