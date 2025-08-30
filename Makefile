@@ -1,4 +1,24 @@
-.PHONY: help install install-dev test test-cov lint format clean db-start db-stop db-reset migrate migrate-create migrate-drop migrate-reset migrate-status upload upload-list show-settings epub-info vectorize-epub dev-setup upload-epub
+.PHONY: \
+	help \
+	install \
+	install-dev \
+	test \
+	test-cov \
+	lint \
+	clean \
+	db-start \
+	db-stop \
+	db-reset \
+	migrate \
+	migrate-create \
+	migrate-drop \
+	migrate-reset \
+	migrate-status \
+	upload-list \
+	show-settings \
+	vectorize-epub \
+	dev-setup \
+	upload-epub
 
 help:  ## Show this help message
 	@echo "Home Library Management System"
@@ -20,9 +40,7 @@ test-cov:  ## Run tests with coverage
 	uv run pytest tests/ --cov=src/home_library --cov-report=html --cov-report=term-missing
 
 lint:  ## Run linting
-	uv run ruff check src/ tests/
-
-format:  ## Format code
+	uv run ruff check --fix src/ tests/
 	uv run ruff format src/ tests/
 
 clean:  ## Clean up generated files
@@ -67,17 +85,11 @@ migrate-reset:  ## Reset database (drop and recreate tables)
 migrate-status:  ## Check database status
 	uv run db-migrate status
 
-upload:  ## Show upload help
-	uv run db-upload --help
-
 upload-list:  ## List EPUBs in database
 	uv run db-upload list
 
 show-settings:  ## Show current application settings
 	uv run show-settings
-
-epub-info:  ## Show EPUB info for test file
-	uv run epub-info test.epub
 
 vectorize-epub:  ## Vectorize test EPUB file
 	uv run vectorize-epub test.epub
