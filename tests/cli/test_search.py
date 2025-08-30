@@ -32,7 +32,7 @@ class TestSearchOutputFunctions:
                 end_token=15,
                 word_count=15,
                 similarity_score=0.85,
-                file_path="/path/to/book1.epub"
+                file_path="/path/to/book1.epub",
             ),
             SearchResult(
                 book_title="Test Book 2",
@@ -45,8 +45,8 @@ class TestSearchOutputFunctions:
                 end_token=35,
                 word_count=15,
                 similarity_score=0.72,
-                file_path="/path/to/book2.epub"
-            )
+                file_path="/path/to/book2.epub",
+            ),
         ]
 
         _print_search_results(results, "test query")
@@ -67,8 +67,14 @@ class TestSearchOutputFunctions:
         assert "Section: Chunk 0 (tokens 0-15)" in captured.out
         assert "Section: Chunk 1 (tokens 20-35)" in captured.out
         assert "Words: 15" in captured.out
-        assert "Text Preview: This is the first test text chunk with some content." in captured.out
-        assert "Text Preview: This is the second test text chunk with different content." in captured.out
+        assert (
+            "Text Preview: This is the first test text chunk with some content."
+            in captured.out
+        )
+        assert (
+            "Text Preview: This is the second test text chunk with different content."
+            in captured.out
+        )
 
     def test_print_search_results_no_results(self, capsys):
         """Test printing search results when no results are found."""
@@ -92,7 +98,7 @@ class TestSearchOutputFunctions:
                 end_token=10,
                 word_count=10,
                 similarity_score=0.85,
-                file_path="/path/to/book.epub"
+                file_path="/path/to/book.epub",
             )
         ]
 
@@ -102,7 +108,9 @@ class TestSearchOutputFunctions:
         assert "Book: Test Book" in captured.out
         assert "Author:" not in captured.out  # Should not print author line
         assert "Chapter: 1" in captured.out
-        assert "Chapter Title:" not in captured.out  # Should not print chapter title line
+        assert (
+            "Chapter Title:" not in captured.out
+        )  # Should not print chapter title line
 
     def test_print_json_results(self, capsys):
         """Test printing search results in JSON format."""
@@ -118,7 +126,7 @@ class TestSearchOutputFunctions:
                 end_token=10,
                 word_count=10,
                 similarity_score=0.85,
-                file_path="/path/to/book.epub"
+                file_path="/path/to/book.epub",
             )
         ]
 
@@ -155,7 +163,7 @@ class TestSearchOutputFunctions:
                 end_token=20,
                 word_count=20,
                 similarity_score=0.85,
-                file_path="/path/to/book.epub"
+                file_path="/path/to/book.epub",
             )
         ]
 
@@ -172,7 +180,10 @@ class TestSearchOutputFunctions:
         assert "Section: Chunk 0 (tokens 0-20)" in captured.out
         assert "Words: 20" in captured.out
         assert "Full Text:" in captured.out
-        assert "This is a test text chunk with more detailed content that should be displayed in full." in captured.out
+        assert (
+            "This is a test text chunk with more detailed content that should be displayed in full."
+            in captured.out
+        )
 
     def test_print_detailed_results_no_results(self, capsys):
         """Test printing detailed results when no results are found."""
@@ -202,7 +213,7 @@ class TestSearchCLI:
                 end_token=10,
                 word_count=10,
                 similarity_score=0.85,
-                file_path="/path/to/book.epub"
+                file_path="/path/to/book.epub",
             )
         ]
         mock_search_library.return_value = mock_results
@@ -224,7 +235,7 @@ class TestSearchCLI:
             limit=5,
             similarity_threshold=0.3,
             model_name=None,
-            device=None
+            device=None,
         )
 
     @patch("home_library.cli.search.search_library")
@@ -234,14 +245,21 @@ class TestSearchCLI:
         mock_search_library.return_value = mock_results
 
         # Test with custom parameters
-        with patch("sys.argv", [
-            "search-library",
-            "test query",
-            "--limit", "3",
-            "--threshold", "0.7",
-            "--model", "custom-model",
-            "--device", "cuda"
-        ]):
+        with patch(
+            "sys.argv",
+            [
+                "search-library",
+                "test query",
+                "--limit",
+                "3",
+                "--threshold",
+                "0.7",
+                "--model",
+                "custom-model",
+                "--device",
+                "cuda",
+            ],
+        ):
             exit_code = main()
 
         assert exit_code == 0
@@ -257,7 +275,7 @@ class TestSearchCLI:
             limit=3,
             similarity_threshold=0.7,
             model_name="custom-model",
-            device="cuda"
+            device="cuda",
         )
 
     @patch("home_library.cli.search.search_library")
@@ -275,7 +293,7 @@ class TestSearchCLI:
                 end_token=15,
                 word_count=15,
                 similarity_score=0.85,
-                file_path="/path/to/book.epub"
+                file_path="/path/to/book.epub",
             )
         ]
         mock_search_library.return_value = mock_results
@@ -305,7 +323,7 @@ class TestSearchCLI:
                 end_token=10,
                 word_count=10,
                 similarity_score=0.85,
-                file_path="/path/to/book.epub"
+                file_path="/path/to/book.epub",
             )
         ]
         mock_search_library.return_value = mock_results
@@ -335,8 +353,10 @@ class TestSearchCLI:
 
     def test_main_invalid_limit(self):
         """Test search with invalid limit parameter."""
-        with patch("sys.argv", ["search-library", "test query", "--limit", "0"]), \
-             patch("sys.stderr", StringIO()) as mock_stderr:
+        with (
+            patch("sys.argv", ["search-library", "test query", "--limit", "0"]),
+            patch("sys.stderr", StringIO()) as mock_stderr,
+        ):
             exit_code = main()
 
         assert exit_code == 1
@@ -344,8 +364,10 @@ class TestSearchCLI:
 
     def test_main_invalid_threshold_low(self):
         """Test search with invalid threshold parameter (too low)."""
-        with patch("sys.argv", ["search-library", "test query", "--threshold", "-0.1"]), \
-             patch("sys.stderr", StringIO()) as mock_stderr:
+        with (
+            patch("sys.argv", ["search-library", "test query", "--threshold", "-0.1"]),
+            patch("sys.stderr", StringIO()) as mock_stderr,
+        ):
             exit_code = main()
 
         assert exit_code == 1
@@ -353,8 +375,10 @@ class TestSearchCLI:
 
     def test_main_invalid_threshold_high(self):
         """Test search with invalid threshold parameter (too high)."""
-        with patch("sys.argv", ["search-library", "test query", "--threshold", "1.1"]), \
-             patch("sys.stderr", StringIO()) as mock_stderr:
+        with (
+            patch("sys.argv", ["search-library", "test query", "--threshold", "1.1"]),
+            patch("sys.stderr", StringIO()) as mock_stderr,
+        ):
             exit_code = main()
 
         assert exit_code == 1
@@ -365,8 +389,10 @@ class TestSearchCLI:
         """Test search when an error occurs."""
         mock_search_library.side_effect = Exception("Search failed")
 
-        with patch("sys.argv", ["search-library", "test query"]), \
-             patch("sys.stderr", StringIO()) as mock_stderr:
+        with (
+            patch("sys.argv", ["search-library", "test query"]),
+            patch("sys.stderr", StringIO()) as mock_stderr,
+        ):
             exit_code = main()
 
         assert exit_code == 1

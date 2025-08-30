@@ -65,7 +65,9 @@ class EmbeddingsCreator:
         self.device = device or self.settings.embeddings_device
         self.batch_size = batch_size or self.settings.embeddings_batch_size
 
-        logger.info(f"Configuration - Model: {self.model_name}, Device: {self.device}, Batch size: {self.batch_size}")
+        logger.info(
+            f"Configuration - Model: {self.model_name}, Device: {self.device}, Batch size: {self.batch_size}"
+        )
 
         # Initialize the sentence transformer model
         logger.info(f"Loading sentence transformer model: {self.model_name}")
@@ -107,7 +109,9 @@ class EmbeddingsCreator:
         logger.info(f"Vectorizing EPUB file: {file_path}")
         try:
             vectorization_result = vectorize_epub(file_path, chunk_size, chunk_overlap)
-            logger.info(f"Vectorization completed: {vectorization_result.total_chunks} chunks, {vectorization_result.total_words} words")
+            logger.info(
+                f"Vectorization completed: {vectorization_result.total_chunks} chunks, {vectorization_result.total_words} words"
+            )
         except Exception:
             logger.exception(f"Failed to vectorize EPUB file {file_path}")
             raise
@@ -119,7 +123,9 @@ class EmbeddingsCreator:
         if not texts:
             logger.warning("No text chunks found in EPUB file")
             processing_time = time.time() - start_time
-            logger.info(f"Embedding creation completed in {processing_time:.2f} seconds (no chunks)")
+            logger.info(
+                f"Embedding creation completed in {processing_time:.2f} seconds (no chunks)"
+            )
             return EmbeddingsResult(
                 file_path=file_path,
                 total_chunks=0,
@@ -172,7 +178,9 @@ class EmbeddingsCreator:
 
         processing_time = time.time() - start_time
         logger.info(f"Embeddings created successfully in {processing_time:.2f} seconds")
-        logger.info(f"Final result: {len(embedding_chunks)} chunks with {self.embedding_dimension}-dimensional vectors")
+        logger.info(
+            f"Final result: {len(embedding_chunks)} chunks with {self.embedding_dimension}-dimensional vectors"
+        )
 
         return EmbeddingsResult(
             file_path=file_path,
@@ -188,7 +196,9 @@ class EmbeddingsCreator:
 
     def get_embeddings_stats(self, result: EmbeddingsResult) -> dict[str, Any]:
         """Get comprehensive statistics about the embeddings result."""
-        logger.debug(f"Calculating statistics for embeddings result: {result.file_path}")
+        logger.debug(
+            f"Calculating statistics for embeddings result: {result.file_path}"
+        )
 
         if not result.chunks:
             logger.debug("No chunks to analyze, returning basic stats")
@@ -278,7 +288,9 @@ def create_embeddings_for_epub(
     return creator.create_embeddings_for_epub(file_path, chunk_size, chunk_overlap)
 
 
-def get_embeddings_model(model_name: str | None = None, device: str | None = None) -> SentenceTransformer:
+def get_embeddings_model(
+    model_name: str | None = None, device: str | None = None
+) -> SentenceTransformer:
     """Get a sentence transformer model instance.
 
     Args:

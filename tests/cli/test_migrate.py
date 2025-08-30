@@ -143,8 +143,8 @@ class TestMigrateCommands:
             "database_size": "1.2 MB",
             "tables": [
                 {"tablename": "epubs", "inserts": 5},
-                {"tablename": "chapters", "inserts": 25}
-            ]
+                {"tablename": "chapters", "inserts": 25},
+            ],
         }
         mock_get_db_service.return_value = mock_db_service
 

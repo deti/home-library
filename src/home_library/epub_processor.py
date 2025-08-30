@@ -11,6 +11,7 @@ import logging
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass
+from typing import Any
 
 from bs4 import BeautifulSoup
 from ebooklib import epub
@@ -261,17 +262,8 @@ def _extract_text_from_item(item) -> str:
     return cleaned_text
 
 
-def parse_epub(path: str, include_text: bool = True) -> EpubDetails:
-    """Parse an EPUB file and return structured details.
-
-    Parameters:
-        path: Path to the .epub file.
-        include_text: When False, chapters.text will be empty strings but
-            word_count preserved via estimation (0 without text). Useful for concise CLI output.
-    """
-    logger.info(f"Parsing EPUB file: {path}")
-    logger.debug(f"Include text setting: {include_text}")
-
+def _load_epub_book(path: str) -> Any:
+    """Load EPUB book using ebooklib."""
     try:
         logger.debug("Reading EPUB file with ebooklib")
         book = epub.read_epub(path)
@@ -279,8 +271,11 @@ def parse_epub(path: str, include_text: bool = True) -> EpubDetails:
     except Exception:
         logger.exception(f"Failed to read EPUB file {path}")
         raise
+    return book
 
-    # Extract metadata
+
+def _extract_metadata(book: Any) -> BookInfo:
+    """Extract metadata from EPUB book."""
     logger.debug("Extracting book metadata")
     try:
         metadata = BookInfo(
@@ -292,22 +287,71 @@ def parse_epub(path: str, include_text: bool = True) -> EpubDetails:
             subjects=_multi_meta(book, "subject"),
             identifiers=_collect_identifiers(book),
         )
-        logger.info(f"Metadata extracted - Title: '{metadata.title}', Authors: {len(metadata.authors)}, Language: {metadata.language}")
+        logger.info(
+            f"Metadata extracted - Title: '{metadata.title}', Authors: {len(metadata.authors)}, Language: {metadata.language}"
+        )
     except Exception:
         logger.exception("Failed to extract metadata")
         raise
+    return metadata
 
-    # Process table of contents
+
+def _process_table_of_contents(book: Any) -> tuple[list[TOCItem], dict[str, str]]:
+    """Process table of contents and return TOC models and href mappings."""
     logger.debug("Processing table of contents")
     try:
         toc_models = _toc_to_models(book.toc)
         href_to_title = _toc_title_by_href(toc_models)
-        logger.info(f"TOC processed: {len(toc_models)} top-level items, {len(href_to_title)} href mappings")
+        logger.info(
+            f"TOC processed: {len(toc_models)} top-level items, {len(href_to_title)} href mappings"
+        )
     except Exception:
         logger.exception("Failed to process table of contents")
         raise
+    return toc_models, href_to_title
 
-    # Process chapters
+
+def _process_chapter_item(
+    idx: int, idref: str, item: Any, href_to_title: dict[str, str], include_text: bool
+) -> Chapter:
+    """Process a single chapter item from the EPUB spine."""
+    href = getattr(item, "file_name", None)
+    logger.debug(f"Processing chapter {idx}: {idref} -> {href}")
+
+    # Try to get title from TOC first
+    title = href_to_title.get(href or "")
+    if title:
+        logger.debug(f"Found title from TOC: '{title}'")
+
+    # If no title from TOC, try to extract from HTML content
+    if not title and include_text:
+        try:
+            html_content = item.get_content()
+            title = _extract_title_from_html(html_content)
+            if title:
+                logger.debug(f"Extracted title from HTML: '{title}'")
+        except Exception as e:
+            logger.warning(f"Failed to extract title from HTML for chapter {idx}: {e}")
+            title = None
+
+    text = ""
+    if include_text:
+        try:
+            text = _extract_text_from_item(item)
+        except Exception as e:
+            logger.warning(f"Failed to extract text from chapter {idx}: {e}")
+            text = ""
+
+    word_count = len(text.split()) if text else 0
+    logger.debug(f"Chapter {idx}: {word_count} words, title: '{title}'")
+
+    return Chapter(index=idx, title=title, href=href, text=text, word_count=word_count)
+
+
+def _process_chapters(
+    book: Any, href_to_title: dict[str, str], include_text: bool
+) -> list[Chapter]:
+    """Process all chapters from the EPUB spine."""
     logger.debug("Processing chapters from spine")
     chapters: list[Chapter] = []
     processed_items = 0
@@ -326,51 +370,46 @@ def parse_epub(path: str, include_text: bool = True) -> EpubDetails:
         # Only process HTML content
         media_type = getattr(item, "media_type", "")
         if not media_type or not media_type.endswith("html+xml"):
-            logger.debug(f"Skipping non-HTML item {idref} with media type: {media_type}")
+            logger.debug(
+                f"Skipping non-HTML item {idref} with media type: {media_type}"
+            )
             skipped_items += 1
             continue
 
-        href = getattr(item, "file_name", None)
-        logger.debug(f"Processing chapter {idx}: {idref} -> {href}")
+        chapter = _process_chapter_item(idx, idref, item, href_to_title, include_text)
+        chapters.append(chapter)
 
-        # Try to get title from TOC first
-        title = href_to_title.get(href or "")
-        if title:
-            logger.debug(f"Found title from TOC: '{title}'")
+    logger.info(
+        f"Chapter processing completed: {len(chapters)} chapters, {processed_items} items processed, {skipped_items} items skipped"
+    )
+    return chapters
 
-        # If no title from TOC, try to extract from HTML content
-        if not title and include_text:
-            try:
-                html_content = item.get_content()
-                title = _extract_title_from_html(html_content)
-                if title:
-                    logger.debug(f"Extracted title from HTML: '{title}'")
-            except Exception as e:
-                logger.warning(f"Failed to extract title from HTML for chapter {idx}: {e}")
-                title = None
 
-        text = ""
-        if include_text:
-            try:
-                text = _extract_text_from_item(item)
-            except Exception as e:
-                logger.warning(f"Failed to extract text from chapter {idx}: {e}")
-                text = ""
+def parse_epub(path: str, include_text: bool = True) -> EpubDetails:
+    """Parse an EPUB file and return structured details.
 
-        word_count = len(text.split()) if text else 0
-        logger.debug(f"Chapter {idx}: {word_count} words, title: '{title}'")
+    Parameters:
+        path: Path to the .epub file.
+        include_text: When False, chapters.text will be empty strings but
+            word_count preserved via estimation (0 without text). Useful for concise CLI output.
+    """
+    logger.info(f"Parsing EPUB file: {path}")
+    logger.debug(f"Include text setting: {include_text}")
 
-        chapters.append(
-            Chapter(index=idx, title=title, href=href, text=text, word_count=word_count)
-        )
-
-    logger.info(f"Chapter processing completed: {len(chapters)} chapters, {processed_items} items processed, {skipped_items} items skipped")
+    book = _load_epub_book(path)
+    metadata = _extract_metadata(book)
+    toc_models, href_to_title = _process_table_of_contents(book)
+    chapters = _process_chapters(book, href_to_title, include_text)
 
     total_words = sum(chapter.word_count for chapter in chapters)
     logger.info(f"Total word count across all chapters: {total_words}")
 
-    result = EpubDetails(path=path, metadata=metadata, toc=toc_models, chapters=chapters)
-    logger.info(f"EPUB parsing completed successfully: {len(result.chapters)} chapters, {total_words} total words")
+    result = EpubDetails(
+        path=path, metadata=metadata, toc=toc_models, chapters=chapters
+    )
+    logger.info(
+        f"EPUB parsing completed successfully: {len(result.chapters)} chapters, {total_words} total words"
+    )
 
     return result
 

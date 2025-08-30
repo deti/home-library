@@ -60,7 +60,9 @@ def _tokenize_text(text: str) -> list[str]:
     # Filter out empty tokens
     filtered_tokens = [token for token in tokens if token.strip()]
 
-    logger.debug(f"Tokenization completed: {len(filtered_tokens)} tokens from {len(tokens)} raw splits")
+    logger.debug(
+        f"Tokenization completed: {len(filtered_tokens)} tokens from {len(tokens)} raw splits"
+    )
     return filtered_tokens
 
 
@@ -76,14 +78,18 @@ def _create_chunks_from_text(
         logger.debug(f"Chapter {chapter_index} has no text content, skipping")
         return []
 
-    logger.debug(f"Creating chunks for chapter {chapter_index} (title: '{chapter_title}') with {len(text)} characters")
+    logger.debug(
+        f"Creating chunks for chapter {chapter_index} (title: '{chapter_title}') with {len(text)} characters"
+    )
     logger.debug(f"Chunk configuration: size={chunk_size}, overlap={chunk_overlap}")
 
     # Use semchunk library for text chunking
     tokens = _tokenize_text(text)
     if len(tokens) <= chunk_size:
         # Single chunk for short text
-        logger.debug(f"Chapter {chapter_index} is short ({len(tokens)} tokens), creating single chunk")
+        logger.debug(
+            f"Chapter {chapter_index} is short ({len(tokens)} tokens), creating single chunk"
+        )
         chunk = TextChunk(
             text=text,
             chunk_id=f"chunk_{chapter_index}_0",
@@ -93,14 +99,18 @@ def _create_chunks_from_text(
             end_token=len(tokens),
             word_count=len(text.split()),
         )
-        logger.debug(f"Created single chunk for chapter {chapter_index}: {chunk.word_count} words")
+        logger.debug(
+            f"Created single chunk for chapter {chapter_index}: {chunk.word_count} words"
+        )
         return [chunk]
 
     chunks = []
     start = 0
     chunk_count = 0
 
-    logger.debug(f"Creating multiple chunks for chapter {chapter_index} with {len(tokens)} tokens")
+    logger.debug(
+        f"Creating multiple chunks for chapter {chapter_index} with {len(tokens)} tokens"
+    )
 
     while start < len(tokens):
         end = start + chunk_size
@@ -122,16 +132,22 @@ def _create_chunks_from_text(
         chunks.append(chunk)
         chunk_count += 1
 
-        logger.debug(f"Created chunk {chunk_count} for chapter {chapter_index}: tokens {start}-{end}, {chunk.word_count} words")
+        logger.debug(
+            f"Created chunk {chunk_count} for chapter {chapter_index}: tokens {start}-{end}, {chunk.word_count} words"
+        )
 
         if end >= len(tokens):
             logger.debug(f"Reached end of chapter {chapter_index} tokens")
             break
 
         start = end - chunk_overlap
-        logger.debug(f"Moving to next chunk starting at token {start} (overlap: {chunk_overlap})")
+        logger.debug(
+            f"Moving to next chunk starting at token {start} (overlap: {chunk_overlap})"
+        )
 
-    logger.info(f"Chapter {chapter_index} chunking completed: {len(chunks)} chunks created")
+    logger.info(
+        f"Chapter {chapter_index} chunking completed: {len(chunks)} chunks created"
+    )
     return chunks
 
 
@@ -156,14 +172,20 @@ def vectorize_epub(
     chunk_size = chunk_size or settings.chunk_size
     chunk_overlap = chunk_overlap or settings.chunk_overlap
 
-    logger.info(f"Vectorization configuration: chunk_size={chunk_size}, chunk_overlap={chunk_overlap}")
-    logger.debug(f"Using settings: embedding_dimension={settings.embedding_dimension}, vectorization_method={settings.vectorization_method}")
+    logger.info(
+        f"Vectorization configuration: chunk_size={chunk_size}, chunk_overlap={chunk_overlap}"
+    )
+    logger.debug(
+        f"Using settings: embedding_dimension={settings.embedding_dimension}, vectorization_method={settings.vectorization_method}"
+    )
 
     # Parse the EPUB file
     logger.debug("Parsing EPUB file to extract content and structure")
     try:
         epub_details = parse_epub(file_path, include_text=True)
-        logger.info(f"EPUB parsed successfully: {len(epub_details.chapters)} chapters found")
+        logger.info(
+            f"EPUB parsed successfully: {len(epub_details.chapters)} chapters found"
+        )
     except Exception:
         logger.exception(f"Failed to parse EPUB file {file_path}")
         raise
@@ -177,16 +199,24 @@ def vectorize_epub(
 
     for chapter in epub_details.chapters:
         if chapter.text:
-            logger.debug(f"Processing chapter {chapter.index}: '{chapter.title}' with {chapter.word_count} words")
+            logger.debug(
+                f"Processing chapter {chapter.index}: '{chapter.title}' with {chapter.word_count} words"
+            )
             try:
                 chunks = _create_chunks_from_text(
-                    chapter.text, chapter.index, chapter.title, chunk_size, chunk_overlap
+                    chapter.text,
+                    chapter.index,
+                    chapter.title,
+                    chunk_size,
+                    chunk_overlap,
                 )
                 all_chunks.extend(chunks)
                 chapter_word_count = sum(chunk.word_count for chunk in chunks)
                 total_words += chapter_word_count
                 chapters_with_content += 1
-                logger.debug(f"Chapter {chapter.index} processed: {len(chunks)} chunks, {chapter_word_count} words")
+                logger.debug(
+                    f"Chapter {chapter.index} processed: {len(chunks)} chunks, {chapter_word_count} words"
+                )
             except Exception:
                 logger.exception(f"Failed to process chapter {chapter.index}")
                 raise
@@ -194,8 +224,12 @@ def vectorize_epub(
             logger.debug(f"Skipping chapter {chapter.index} (no text content)")
             chapters_skipped += 1
 
-    logger.info(f"Chunking completed: {len(all_chunks)} total chunks from {chapters_with_content} chapters")
-    logger.info(f"Total word count: {total_words}, chapters skipped: {chapters_skipped}")
+    logger.info(
+        f"Chunking completed: {len(all_chunks)} total chunks from {chapters_with_content} chapters"
+    )
+    logger.info(
+        f"Total word count: {total_words}, chapters skipped: {chapters_skipped}"
+    )
 
     # Create result
     result = VectorizationResult(
@@ -209,7 +243,9 @@ def vectorize_epub(
         chunks=all_chunks,
     )
 
-    logger.info(f"EPUB vectorization completed successfully: {result.total_chunks} chunks, {result.total_words} words")
+    logger.info(
+        f"EPUB vectorization completed successfully: {result.total_chunks} chunks, {result.total_words} words"
+    )
     return result
 
 
@@ -254,8 +290,10 @@ def get_vectorization_stats(result: VectorizationResult) -> dict[str, Any]:
 
     # Calculate chunk size variance
     if len(chunk_sizes) > 1:
-        variance = sum((size - avg_chunk_size) ** 2 for size in chunk_sizes) / len(chunk_sizes)
-        chunk_size_std = variance ** 0.5
+        variance = sum((size - avg_chunk_size) ** 2 for size in chunk_sizes) / len(
+            chunk_sizes
+        )
+        chunk_size_std = variance**0.5
     else:
         chunk_size_std = 0
 
@@ -283,6 +321,8 @@ def get_vectorization_stats(result: VectorizationResult) -> dict[str, Any]:
     }
 
     logger.debug(f"Statistics calculated successfully: {len(stats)} metrics")
-    logger.info(f"Vectorization stats: {result.total_chunks} chunks, avg size: {avg_chunk_size:.1f} words, size range: {min_chunk_size}-{max_chunk_size}")
+    logger.info(
+        f"Vectorization stats: {result.total_chunks} chunks, avg size: {avg_chunk_size:.1f} words, size range: {min_chunk_size}-{max_chunk_size}"
+    )
 
     return stats

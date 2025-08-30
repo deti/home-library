@@ -42,7 +42,9 @@ class TestDatabaseService:
             # Verify tables were created by checking if we can query them
             with service.get_session() as session:
                 # This should not raise an error if tables exist
-                result = session.execute(text("SELECT name FROM sqlite_master WHERE type='table'"))
+                result = session.execute(
+                    text("SELECT name FROM sqlite_master WHERE type='table'")
+                )
                 tables = [row[0] for row in result]
                 assert "epubs" in tables
                 assert "chapters" in tables
@@ -63,7 +65,9 @@ class TestDatabaseService:
 
             # Verify tables were dropped
             with service.get_session() as session:
-                result = session.execute(text("SELECT name FROM sqlite_master WHERE type='table'"))
+                result = session.execute(
+                    text("SELECT name FROM sqlite_master WHERE type='table'")
+                )
                 tables = [row[0] for row in result]
                 assert "epubs" not in tables
 
@@ -80,7 +84,9 @@ class TestDatabaseService:
 
             # Verify tables exist after reset
             with service.get_session() as session:
-                result = session.execute(text("SELECT name FROM sqlite_master WHERE type='table'"))
+                result = session.execute(
+                    text("SELECT name FROM sqlite_master WHERE type='table'")
+                )
                 tables = [row[0] for row in result]
                 assert "epubs" in tables
 
@@ -150,8 +156,8 @@ class TestDatabaseServiceIntegration:
     def test_session_rollback_on_error(self, db_service):
         """Test that sessions rollback on errors."""
         with pytest.raises((Exception, Exception)), db_service.get_session() as session:
-                # This should cause an error
-                session.execute(text("SELECT * FROM non_existent_table"))
+            # This should cause an error
+            session.execute(text("SELECT * FROM non_existent_table"))
 
         # Session should be closed after error
         # Note: SQLAlchemy 2.0 doesn't have is_closed attribute

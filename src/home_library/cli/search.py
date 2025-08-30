@@ -26,10 +26,14 @@ def _print_search_results(results: list[SearchResult], query: str) -> None:
         print(f"   Chapter: {result.chapter_index}")
         if result.chapter_title:
             print(f"   Chapter Title: {result.chapter_title}")
-        print(f"   Section: Chunk {result.chunk_index} (tokens {result.start_token}-{result.end_token})")
+        print(
+            f"   Section: Chunk {result.chunk_index} (tokens {result.start_token}-{result.end_token})"
+        )
         print(f"   Words: {result.word_count}")
         print(f"   File: {result.file_path}")
-        print(f"   Text Preview: {result.text[:150]}{'...' if len(result.text) > 150 else ''}")
+        print(
+            f"   Text Preview: {result.text[:150]}{'...' if len(result.text) > 150 else ''}"
+        )
         print()
 
 
@@ -38,7 +42,7 @@ def _print_json_results(results: list[SearchResult], query: str) -> None:
     output_data = {
         "query": query,
         "total_results": len(results),
-        "results": [result.model_dump() for result in results]
+        "results": [result.model_dump() for result in results],
     }
     print(json.dumps(output_data, indent=2))
 
@@ -61,7 +65,9 @@ def _print_detailed_results(results: list[SearchResult], query: str) -> None:
         print(f"   Chapter: {result.chapter_index}")
         if result.chapter_title:
             print(f"   Chapter Title: {result.chapter_title}")
-        print(f"   Section: Chunk {result.chunk_index} (tokens {result.start_token}-{result.end_token})")
+        print(
+            f"   Section: Chunk {result.chunk_index} (tokens {result.start_token}-{result.end_token})"
+        )
         print(f"   Words: {result.word_count}")
         print(f"   File: {result.file_path}")
         print("   Full Text:")
@@ -80,47 +86,38 @@ def main() -> None | int:
         prog="search-library",
         description="Search the vectorized library using vector similarity",
     )
-    parser.add_argument(
-        "query",
-        help="Search query text"
-    )
+    parser.add_argument("query", help="Search query text")
 
     # Search options
     parser.add_argument(
         "--limit",
         type=int,
         default=5,
-        help="Maximum number of results to return (default: 5)"
+        help="Maximum number of results to return (default: 5)",
     )
     parser.add_argument(
         "--threshold",
         type=float,
         default=0.3,
-        help="Minimum similarity score threshold 0.0-1.0 (default: 0.3)"
+        help="Minimum similarity score threshold 0.0-1.0 (default: 0.3)",
     )
 
     # Model options
     parser.add_argument(
-        "--model",
-        type=str,
-        help="Override default sentence-transformers model"
+        "--model", type=str, help="Override default sentence-transformers model"
     )
     parser.add_argument(
         "--device",
         choices=["cpu", "cuda", "mps"],
-        help="Override default device for embeddings computation"
+        help="Override default device for embeddings computation",
     )
 
     # Output options
     parser.add_argument(
-        "--detailed",
-        action="store_true",
-        help="Show full text content for each result"
+        "--detailed", action="store_true", help="Show full text content for each result"
     )
     parser.add_argument(
-        "--json",
-        action="store_true",
-        help="Output results in JSON format"
+        "--json", action="store_true", help="Output results in JSON format"
     )
 
     args = parser.parse_args()
@@ -150,7 +147,7 @@ def main() -> None | int:
             limit=args.limit,
             similarity_threshold=args.threshold,
             model_name=args.model,
-            device=args.device
+            device=args.device,
         )
 
         # Handle output formatting
@@ -169,6 +166,7 @@ def main() -> None | int:
         return 1
 
     return 0
+
 
 if __name__ == "__main__":  # pragma: no cover - CLI entry point
     sys.exit(main())

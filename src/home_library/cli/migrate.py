@@ -81,24 +81,16 @@ def main() -> None:
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     # Create tables command
-    subparsers.add_parser(
-        "create", help="Create all database tables"
-    )
+    subparsers.add_parser("create", help="Create all database tables")
 
     # Drop tables command
-    subparsers.add_parser(
-        "drop", help="Drop all database tables"
-    )
+    subparsers.add_parser("drop", help="Drop all database tables")
 
     # Reset database command
-    subparsers.add_parser(
-        "reset", help="Reset database (drop and recreate all tables)"
-    )
+    subparsers.add_parser("reset", help="Reset database (drop and recreate all tables)")
 
     # Status command
-    subparsers.add_parser(
-        "status", help="Check database status and connection"
-    )
+    subparsers.add_parser("status", help="Check database status and connection")
 
     args = parser.parse_args()
 

@@ -19,6 +19,7 @@ from home_library.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
+
 class DatabaseService:
     """Database service for managing connections and sessions."""
 
@@ -32,7 +33,9 @@ class DatabaseService:
 
     def _initialize_engine(self) -> None:
         """Initialize the SQLAlchemy engine."""
-        logger.info(f"Initializing database engine with URL: {self.settings.database_url}")
+        logger.info(
+            f"Initializing database engine with URL: {self.settings.database_url}"
+        )
         logger.debug(f"Database echo setting: {self.settings.database_echo}")
 
         # For development, use SQLite if PostgreSQL is not available
@@ -139,7 +142,8 @@ class DatabaseService:
 
                 # Get table counts
                 logger.debug("Querying table statistics")
-                result = conn.execute(text("""
+                result = conn.execute(
+                    text("""
                     SELECT
                         schemaname,
                         tablename,
@@ -149,15 +153,18 @@ class DatabaseService:
                     FROM pg_stat_user_tables
                     WHERE schemaname = 'public'
                     ORDER BY tablename
-                """))
+                """)
+                )
                 table_stats = [dict(row._asdict()) for row in result]
                 logger.debug(f"Retrieved statistics for {len(table_stats)} tables")
 
                 # Get database size
                 logger.debug("Querying database size")
-                result = conn.execute(text("""
+                result = conn.execute(
+                    text("""
                     SELECT pg_size_pretty(pg_database_size(current_database())) as size
-                """))
+                """)
+                )
                 db_size = result.fetchone()[0] if result.rowcount > 0 else "Unknown"
                 logger.debug(f"Database size: {db_size}")
 
@@ -165,7 +172,7 @@ class DatabaseService:
                     "database_url": str(self.engine.url),
                     "database_size": db_size,
                     "tables": table_stats,
-                    "status": "healthy"
+                    "status": "healthy",
                 }
                 logger.info("Database information retrieved successfully")
                 return info
@@ -174,7 +181,7 @@ class DatabaseService:
             return {
                 "database_url": str(self.engine.url),
                 "status": "error",
-                "error": str(e)
+                "error": str(e),
             }
 
 

@@ -46,16 +46,20 @@ class Epub(Base):
     )
 
     # Relationships
-    chapters = relationship("Chapter", back_populates="epub", cascade="all, delete-orphan")
-    chunks = relationship("TextChunk", back_populates="epub", cascade="all, delete-orphan")
-
-    # Constraints
-    __table_args__ = (
-        UniqueConstraint("file_path", name="uq_epub_file_path"),
+    chapters = relationship(
+        "Chapter", back_populates="epub", cascade="all, delete-orphan"
+    )
+    chunks = relationship(
+        "TextChunk", back_populates="epub", cascade="all, delete-orphan"
     )
 
+    # Constraints
+    __table_args__ = (UniqueConstraint("file_path", name="uq_epub_file_path"),)
+
     def __repr__(self) -> str:
-        return f"<Epub(id={self.id}, title='{self.title}', file_path='{self.file_path}')>"
+        return (
+            f"<Epub(id={self.id}, title='{self.title}', file_path='{self.file_path}')>"
+        )
 
 
 class Chapter(Base):
@@ -78,7 +82,9 @@ class Chapter(Base):
 
     # Relationships
     epub = relationship("Epub", back_populates="chapters")
-    chunks = relationship("TextChunk", back_populates="chapter", cascade="all, delete-orphan")
+    chunks = relationship(
+        "TextChunk", back_populates="chapter", cascade="all, delete-orphan"
+    )
 
     # Constraints
     __table_args__ = (
@@ -86,7 +92,9 @@ class Chapter(Base):
     )
 
     def __repr__(self) -> str:
-        return f"<Chapter(id={self.id}, index={self.chapter_index}, title='{self.title}')>"
+        return (
+            f"<Chapter(id={self.id}, index={self.chapter_index}, title='{self.title}')>"
+        )
 
 
 class TextChunk(Base):
@@ -119,7 +127,9 @@ class TextChunk(Base):
 
     # Constraints
     __table_args__ = (
-        UniqueConstraint("epub_id", "chapter_id", "chunk_index", name="uq_epub_chapter_chunk"),
+        UniqueConstraint(
+            "epub_id", "chapter_id", "chunk_index", name="uq_epub_chapter_chunk"
+        ),
     )
 
     def __repr__(self) -> str:
@@ -137,7 +147,9 @@ class Embedding(Base):
     chunk_id: Mapped[UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("text_chunks.id"), nullable=False, unique=True
     )
-    vector: Mapped[Vector] = mapped_column(Vector(1536), nullable=False)  # Max common embedding dimension
+    vector: Mapped[Vector] = mapped_column(
+        Vector(1536), nullable=False
+    )  # Max common embedding dimension
     model_name: Mapped[str] = mapped_column(String(100), nullable=False)
     embedding_dimension: Mapped[int] = mapped_column(Integer, nullable=False)
     created_at: Mapped[datetime] = mapped_column(

@@ -31,7 +31,7 @@ class TestSearchResult:
             end_token=10,
             word_count=10,
             similarity_score=0.85,
-            file_path="/path/to/book.epub"
+            file_path="/path/to/book.epub",
         )
 
         assert result.book_title == "Test Book"
@@ -57,7 +57,7 @@ class TestSearchResult:
             end_token=10,
             word_count=10,
             similarity_score=0.85,
-            file_path="/path/to/book.epub"
+            file_path="/path/to/book.epub",
         )
 
         assert result.book_author is None
@@ -107,7 +107,6 @@ class TestSearchService:
         assert service.device == "cuda"
         assert service.model == mock_model
 
-
     @patch("home_library.search.get_db_service")
     @patch("home_library.search.get_embeddings_model")
     @patch("home_library.search.get_settings")
@@ -123,7 +122,9 @@ class TestSearchService:
         # Mock database service
         mock_db_service = Mock()
         mock_session = Mock()
-        mock_db_service.get_session.return_value = _mock_db_context_manager(mock_session)
+        mock_db_service.get_session.return_value = _mock_db_context_manager(
+            mock_session
+        )
         mock_get_db.return_value = mock_db_service
 
         # Mock empty results
@@ -151,7 +152,9 @@ class TestSearchService:
         # Mock database service
         mock_db_service = Mock()
         mock_session = Mock()
-        mock_db_service.get_session.return_value = _mock_db_context_manager(mock_session)
+        mock_db_service.get_session.return_value = _mock_db_context_manager(
+            mock_session
+        )
         mock_get_db.return_value = mock_db_service
 
         # Create mock database objects
@@ -201,19 +204,25 @@ class TestSearchService:
     @patch("home_library.search.get_db_service")
     @patch("home_library.search.get_embeddings_model")
     @patch("home_library.search.get_settings")
-    def test_search_similarity_threshold(self, mock_get_settings, mock_get_model, mock_get_db):
+    def test_search_similarity_threshold(
+        self, mock_get_settings, mock_get_model, mock_get_db
+    ):
         """Test search with similarity threshold filtering."""
         # Mock settings and model
         mock_settings = Mock()
         mock_get_settings.return_value = mock_settings
         mock_model = Mock()
-        mock_model.encode.return_value = [np.array([0.9, 0.8, 0.7])]  # Different from stored embedding
+        mock_model.encode.return_value = [
+            np.array([0.9, 0.8, 0.7])
+        ]  # Different from stored embedding
         mock_get_model.return_value = mock_model
 
         # Mock database service
         mock_db_service = Mock()
         mock_session = Mock()
-        mock_db_service.get_session.return_value = _mock_db_context_manager(mock_session)
+        mock_db_service.get_session.return_value = _mock_db_context_manager(
+            mock_session
+        )
         mock_get_db.return_value = mock_db_service
 
         # Create mock database objects
@@ -276,7 +285,9 @@ class TestSearchService:
         # Mock database service
         mock_db_service = Mock()
         mock_session = Mock()
-        mock_db_service.get_session.return_value = _mock_db_context_manager(mock_session)
+        mock_db_service.get_session.return_value = _mock_db_context_manager(
+            mock_session
+        )
         mock_get_db.return_value = mock_db_service
 
         # Create multiple mock results
@@ -327,7 +338,9 @@ class TestSearchService:
     @patch("home_library.search.get_db_service")
     @patch("home_library.search.get_embeddings_model")
     @patch("home_library.search.get_settings")
-    def test_search_invalid_embedding_data(self, mock_get_settings, mock_get_model, mock_get_db):
+    def test_search_invalid_embedding_data(
+        self, mock_get_settings, mock_get_model, mock_get_db
+    ):
         """Test search handling of invalid embedding data."""
         # Mock settings and model
         mock_settings = Mock()
@@ -339,7 +352,9 @@ class TestSearchService:
         # Mock database service
         mock_db_service = Mock()
         mock_session = Mock()
-        mock_db_service.get_session.return_value = _mock_db_context_manager(mock_session)
+        mock_db_service.get_session.return_value = _mock_db_context_manager(
+            mock_session
+        )
         mock_get_db.return_value = mock_db_service
 
         # Mock empty results (database would handle invalid data gracefully)
@@ -391,7 +406,7 @@ class TestConvenienceFunctions:
             limit=3,
             similarity_threshold=0.7,
             model_name="custom-model",
-            device="cuda"
+            device="cuda",
         )
 
         # Verify SearchService was created with custom parameters

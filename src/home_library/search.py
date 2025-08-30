@@ -54,10 +54,7 @@ class SearchService:
         logger.info(f"Search model loaded successfully on device: {self.device}")
 
     def search(
-        self,
-        query: str,
-        limit: int = 5,
-        similarity_threshold: float = 0.3
+        self, query: str, limit: int = 5, similarity_threshold: float = 0.3
     ) -> list[SearchResult]:
         """Search for similar text chunks using vector similarity.
 
@@ -91,12 +88,17 @@ class SearchService:
                     TextChunk,
                     Chapter,
                     Epub,
-                    (1 - Embedding.vector.cosine_distance(query_vector)).label("similarity")
+                    (1 - Embedding.vector.cosine_distance(query_vector)).label(
+                        "similarity"
+                    ),
                 )
                 .join(TextChunk, Embedding.chunk_id == TextChunk.id)
                 .join(Chapter, TextChunk.chapter_id == Chapter.id)
                 .join(Epub, TextChunk.epub_id == Epub.id)
-                .filter((1 - Embedding.vector.cosine_distance(query_vector)) >= similarity_threshold)
+                .filter(
+                    (1 - Embedding.vector.cosine_distance(query_vector))
+                    >= similarity_threshold
+                )
                 .order_by(Embedding.vector.cosine_distance(query_vector))
                 .limit(limit)
             )
@@ -114,7 +116,7 @@ class SearchService:
                     "embedding": row.Embedding,
                     "chunk": row.TextChunk,
                     "chapter": row.Chapter,
-                    "epub": row.Epub
+                    "epub": row.Epub,
                 }
                 for row in results
             ]
@@ -133,11 +135,13 @@ class SearchService:
                     end_token=result["chunk"].end_token,
                     word_count=result["chunk"].word_count,
                     similarity_score=round(result["similarity"], 4),
-                    file_path=result["epub"].file_path
+                    file_path=result["epub"].file_path,
                 )
                 search_results.append(search_result)
 
-            logger.info(f"Found {len(search_results)} results above threshold {similarity_threshold}")
+            logger.info(
+                f"Found {len(search_results)} results above threshold {similarity_threshold}"
+            )
             return search_results
 
 
@@ -146,7 +150,7 @@ def search_library(
     limit: int = 5,
     similarity_threshold: float = 0.3,
     model_name: str | None = None,
-    device: str | None = None
+    device: str | None = None,
 ) -> list[SearchResult]:
     """Convenience function to search the library.
 

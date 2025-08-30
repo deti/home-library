@@ -45,9 +45,9 @@ def upload_epub(file_path: str, generate_embeddings: bool = True) -> None:  # no
 
         with db_service.get_session() as session:
             # Check if EPUB already exists
-            existing_epub = session.query(Epub).filter(
-                Epub.file_path == str(file_path)
-            ).first()
+            existing_epub = (
+                session.query(Epub).filter(Epub.file_path == str(file_path)).first()
+            )
 
             if existing_epub:
                 print(f"⚠️  EPUB already exists in database: {existing_epub.title}")
@@ -64,9 +64,11 @@ def upload_epub(file_path: str, generate_embeddings: bool = True) -> None:  # no
             epub = Epub(
                 file_path=str(file_path),
                 title=epub_details.metadata.title,
-                author=epub_details.metadata.authors[0] if epub_details.metadata.authors else None,
+                author=epub_details.metadata.authors[0]
+                if epub_details.metadata.authors
+                else None,
                 language=epub_details.metadata.language,
-                file_size=file_path.stat().st_size
+                file_size=file_path.stat().st_size,
             )
             session.add(epub)
             session.flush()  # Get the ID
@@ -80,7 +82,7 @@ def upload_epub(file_path: str, generate_embeddings: bool = True) -> None:  # no
                     epub_id=epub.id,
                     chapter_index=chapter_detail.index,
                     title=chapter_detail.title,
-                    file_name=chapter_detail.href
+                    file_name=chapter_detail.href,
                 )
                 chapters.append(chapter)
                 session.add(chapter)
@@ -99,8 +101,12 @@ def upload_epub(file_path: str, generate_embeddings: bool = True) -> None:  # no
                 for chunk_detail in vectorization_result.chunks:
                     # Find corresponding chapter
                     chapter = next(
-                        (c for c in chapters if c.chapter_index == chunk_detail.chapter_index),
-                        None
+                        (
+                            c
+                            for c in chapters
+                            if c.chapter_index == chunk_detail.chapter_index
+                        ),
+                        None,
                     )
 
                     if chapter:
@@ -111,7 +117,7 @@ def upload_epub(file_path: str, generate_embeddings: bool = True) -> None:  # no
                             text=chunk_detail.text,
                             start_token=chunk_detail.start_token,
                             end_token=chunk_detail.end_token,
-                            word_count=chunk_detail.word_count
+                            word_count=chunk_detail.word_count,
                         )
                         chunks.append(chunk)
                         session.add(chunk)
@@ -139,7 +145,7 @@ def upload_epub(file_path: str, generate_embeddings: bool = True) -> None:  # no
                             chunk_id=chunk.id,
                             vector=embedding_vector,
                             model_name=settings.embeddings_model,
-                            embedding_dimension=len(embedding_vector)
+                            embedding_dimension=len(embedding_vector),
                         )
                         session.add(embedding)
 
@@ -179,17 +185,22 @@ def list_epubs() -> None:
 
             for epub in epubs:
                 # Get counts
-                chapter_count = session.query(Chapter).filter(
-                    Chapter.epub_id == epub.id
-                ).count()
+                chapter_count = (
+                    session.query(Chapter).filter(Chapter.epub_id == epub.id).count()
+                )
 
-                chunk_count = session.query(TextChunk).filter(
-                    TextChunk.epub_id == epub.id
-                ).count()
+                chunk_count = (
+                    session.query(TextChunk)
+                    .filter(TextChunk.epub_id == epub.id)
+                    .count()
+                )
 
-                embedding_count = session.query(Embedding).join(TextChunk).filter(
-                    TextChunk.epub_id == epub.id
-                ).count()
+                embedding_count = (
+                    session.query(Embedding)
+                    .join(TextChunk)
+                    .filter(TextChunk.epub_id == epub.id)
+                    .count()
+                )
 
                 print(f"📖 {epub.title}")
                 print(f"   Author: {epub.author or 'Unknown'}")
@@ -217,19 +228,15 @@ def main() -> None:
     upload_parser = subparsers.add_parser(
         "upload", help="Upload an EPUB file to the database"
     )
-    upload_parser.add_argument(
-        "file_path", help="Path to the EPUB file to upload"
-    )
+    upload_parser.add_argument("file_path", help="Path to the EPUB file to upload")
     upload_parser.add_argument(
         "--no-embeddings",
         action="store_true",
-        help="Skip embedding generation (text chunks only)"
+        help="Skip embedding generation (text chunks only)",
     )
 
     # List command
-    subparsers.add_parser(
-        "list", help="List all EPUBs in the database"
-    )
+    subparsers.add_parser("list", help="List all EPUBs in the database")
 
     args = parser.parse_args()
 

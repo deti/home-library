@@ -18,9 +18,15 @@ class TestUploadEpub:
     @patch("home_library.cli.upload.vectorize_epub")
     @patch("home_library.cli.upload.get_settings")
     @patch("home_library.embeddings.get_embeddings_model")
-    def test_upload_epub_success(self, mock_get_model, mock_get_settings,
-                                mock_vectorize, mock_get_db_service,
-                                mock_parse_epub, mock_path):
+    def test_upload_epub_success(
+        self,
+        mock_get_model,
+        mock_get_settings,
+        mock_vectorize,
+        mock_get_db_service,
+        mock_parse_epub,
+        mock_path,
+    ):
         """Test successful EPUB upload."""
         # Mock file path
         mock_file_path = Mock()
@@ -36,8 +42,12 @@ class TestUploadEpub:
         mock_epub_details.metadata.authors = ["Test Author"]
         mock_epub_details.metadata.language = "en"
         mock_epub_details.chapters = [
-            Mock(index=0, title="Chapter 1", file_name="ch1.xhtml", text="Chapter 1 text"),
-            Mock(index=1, title="Chapter 2", file_name="ch2.xhtml", text="Chapter 2 text")
+            Mock(
+                index=0, title="Chapter 1", file_name="ch1.xhtml", text="Chapter 1 text"
+            ),
+            Mock(
+                index=1, title="Chapter 2", file_name="ch2.xhtml", text="Chapter 2 text"
+            ),
         ]
         mock_parse_epub.return_value = mock_epub_details
 
@@ -59,7 +69,7 @@ class TestUploadEpub:
                 text="Chapter 1 chunk",
                 start_token=0,
                 end_token=5,
-                word_count=3
+                word_count=3,
             ),
             Mock(
                 chunk_id="chunk_1_0",
@@ -67,8 +77,8 @@ class TestUploadEpub:
                 text="Chapter 2 chunk",
                 start_token=0,
                 end_token=5,
-                word_count=3
-            )
+                word_count=3,
+            ),
         ]
         mock_vectorize.return_value = mock_vectorization_result
 
@@ -157,8 +167,9 @@ class TestUploadEpub:
     @patch("home_library.cli.upload.Path")
     @patch("home_library.cli.upload.parse_epub")
     @patch("home_library.cli.upload.get_db_service")
-    def test_upload_epub_existing_epub_replace(self, mock_get_db_service,
-                                             mock_parse_epub, mock_path):
+    def test_upload_epub_existing_epub_replace(
+        self, mock_get_db_service, mock_parse_epub, mock_path
+    ):
         """Test EPUB upload with existing EPUB and user chooses to replace."""
         # Mock file path
         mock_file_path = Mock()
@@ -188,7 +199,9 @@ class TestUploadEpub:
         # Mock existing EPUB
         mock_existing_epub = Mock()
         mock_existing_epub.title = "Existing Book"
-        mock_session.query.return_value.filter.return_value.first.return_value = mock_existing_epub
+        mock_session.query.return_value.filter.return_value.first.return_value = (
+            mock_existing_epub
+        )
 
         # Mock user input to replace
         with patch("builtins.input", return_value="y"):
@@ -211,8 +224,9 @@ class TestUploadEpub:
     @patch("home_library.cli.upload.Path")
     @patch("home_library.cli.upload.parse_epub")
     @patch("home_library.cli.upload.get_db_service")
-    def test_upload_epub_existing_epub_cancel(self, mock_get_db_service,
-                                            mock_parse_epub, mock_path):
+    def test_upload_epub_existing_epub_cancel(
+        self, mock_get_db_service, mock_parse_epub, mock_path
+    ):
         """Test EPUB upload with existing EPUB and user cancels."""
         # Mock file path
         mock_file_path = Mock()
@@ -236,7 +250,9 @@ class TestUploadEpub:
         # Mock existing EPUB
         mock_existing_epub = Mock()
         mock_existing_epub.title = "Existing Book"
-        mock_session.query.return_value.filter.return_value.first.return_value = mock_existing_epub
+        mock_session.query.return_value.filter.return_value.first.return_value = (
+            mock_existing_epub
+        )
 
         # Mock user input to cancel
         with patch("builtins.input", return_value="n"):
