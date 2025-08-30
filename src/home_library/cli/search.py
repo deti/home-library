@@ -71,7 +71,7 @@ def _print_detailed_results(results: list[SearchResult], query: str) -> None:
         print()
 
 
-def main() -> None:
+def main() -> None | int:
     """CLI to search the vectorized library using vector similarity.
 
     Usage: search-library "your search query" [--limit N] [--threshold F] [--model NAME] [--device DEVICE] [--detailed] [--json]
@@ -160,7 +160,6 @@ def main() -> None:
             _print_detailed_results(results, args.query)
         else:
             _print_search_results(results, args.query)
-            return 0
 
     except KeyboardInterrupt:
         print("\n❌ Search interrupted by user")
@@ -169,6 +168,7 @@ def main() -> None:
         sys.stderr.write(f"Error performing search: {e!s}\n")
         return 1
 
+    return 0
 
 if __name__ == "__main__":  # pragma: no cover - CLI entry point
     sys.exit(main())
