@@ -59,19 +59,30 @@ class EmbeddingsCreator:
             device: Override default device from settings
             batch_size: Override default batch size from settings
         """
+        logger.info("Initializing EmbeddingsCreator")
         self.settings = get_settings()
         self.model_name = model_name or self.settings.embeddings_model
         self.device = device or self.settings.embeddings_device
         self.batch_size = batch_size or self.settings.embeddings_batch_size
 
+        logger.info(f"Configuration - Model: {self.model_name}, Device: {self.device}, Batch size: {self.batch_size}")
+
         # Initialize the sentence transformer model
         logger.info(f"Loading sentence transformer model: {self.model_name}")
-        self.model = SentenceTransformer(self.model_name, device=self.device)
-        logger.info(f"Model loaded successfully on device: {self.device}")
+        try:
+            self.model = SentenceTransformer(self.model_name, device=self.device)
+            logger.info(f"Model loaded successfully on device: {self.device}")
+        except Exception:
+            logger.exception(f"Failed to load model {self.model_name}")
+            raise
 
         # Get actual embedding dimension from the model
-        self.embedding_dimension = self.model.get_sentence_embedding_dimension()
-        logger.info(f"Model embedding dimension: {self.embedding_dimension}")
+        try:
+            self.embedding_dimension = self.model.get_sentence_embedding_dimension()
+            logger.info(f"Model embedding dimension: {self.embedding_dimension}")
+        except Exception:
+            logger.exception("Failed to get model embedding dimension")
+            raise
 
     def create_embeddings_for_epub(
         self,
@@ -90,16 +101,25 @@ class EmbeddingsCreator:
                 EmbeddingsResult containing all chunks with their embeddings
         """
         start_time = time.time()
+        logger.info(f"Starting embedding creation for EPUB: {file_path}")
 
         # First, vectorize the EPUB to get text chunks
         logger.info(f"Vectorizing EPUB file: {file_path}")
-        vectorization_result = vectorize_epub(file_path, chunk_size, chunk_overlap)
+        try:
+            vectorization_result = vectorize_epub(file_path, chunk_size, chunk_overlap)
+            logger.info(f"Vectorization completed: {vectorization_result.total_chunks} chunks, {vectorization_result.total_words} words")
+        except Exception:
+            logger.exception(f"Failed to vectorize EPUB file {file_path}")
+            raise
 
         # Extract text from chunks for embedding
         texts = [chunk.text for chunk in vectorization_result.chunks]
+        logger.debug(f"Extracted {len(texts)} text chunks for embedding")
 
         if not texts:
             logger.warning("No text chunks found in EPUB file")
+            processing_time = time.time() - start_time
+            logger.info(f"Embedding creation completed in {processing_time:.2f} seconds (no chunks)")
             return EmbeddingsResult(
                 file_path=file_path,
                 total_chunks=0,
@@ -109,35 +129,50 @@ class EmbeddingsCreator:
                 device=self.device,
                 batch_size=self.batch_size,
                 chunks=[],
-                processing_time_seconds=time.time() - start_time,
+                processing_time_seconds=processing_time,
             )
 
         # Create embeddings in batches
         logger.info(
             f"Creating embeddings for {len(texts)} chunks using batch size {self.batch_size}"
         )
-        embeddings = self.model.encode(
-            texts,
-            batch_size=self.batch_size,
-            show_progress_bar=True,
-            convert_to_numpy=True,
-        )
+        try:
+            embeddings = self.model.encode(
+                texts,
+                batch_size=self.batch_size,
+                show_progress_bar=True,
+                convert_to_numpy=True,
+            )
+            logger.debug(f"Raw embeddings created with shape: {embeddings.shape}")
+        except Exception:
+            logger.exception("Failed to create embeddings")
+            raise
 
         # Convert numpy arrays to lists and create EmbeddingChunk objects
+        logger.debug("Converting embeddings to EmbeddingChunk objects")
         embedding_chunks = []
-        for _i, (chunk, embedding) in enumerate(
+        for i, (chunk, embedding) in enumerate(
             zip(vectorization_result.chunks, embeddings, strict=False)
         ):
-            embedding_list = embedding.tolist()
-            embedding_norm = float(np.linalg.norm(embedding))
+            try:
+                embedding_list = embedding.tolist()
+                embedding_norm = float(np.linalg.norm(embedding))
 
-            embedding_chunk = EmbeddingChunk(
-                chunk=chunk, embedding=embedding_list, embedding_norm=embedding_norm
-            )
-            embedding_chunks.append(embedding_chunk)
+                embedding_chunk = EmbeddingChunk(
+                    chunk=chunk, embedding=embedding_list, embedding_norm=embedding_norm
+                )
+                embedding_chunks.append(embedding_chunk)
+
+                if i % 100 == 0 and i > 0:
+                    logger.debug(f"Processed {i}/{len(texts)} chunks")
+
+            except Exception:
+                logger.exception(f"Failed to process chunk {i}")
+                raise
 
         processing_time = time.time() - start_time
         logger.info(f"Embeddings created successfully in {processing_time:.2f} seconds")
+        logger.info(f"Final result: {len(embedding_chunks)} chunks with {self.embedding_dimension}-dimensional vectors")
 
         return EmbeddingsResult(
             file_path=file_path,
@@ -153,7 +188,10 @@ class EmbeddingsCreator:
 
     def get_embeddings_stats(self, result: EmbeddingsResult) -> dict[str, Any]:
         """Get comprehensive statistics about the embeddings result."""
+        logger.debug(f"Calculating statistics for embeddings result: {result.file_path}")
+
         if not result.chunks:
+            logger.debug("No chunks to analyze, returning basic stats")
             return {
                 "file_path": result.file_path,
                 "total_chunks": 0,
@@ -165,14 +203,17 @@ class EmbeddingsCreator:
             }
 
         # Calculate embedding statistics
+        logger.debug("Calculating embedding norm statistics")
         embedding_norms = [chunk.embedding_norm for chunk in result.chunks]
         avg_norm = sum(embedding_norms) / len(embedding_norms)
 
         # Calculate chunk size distribution
+        logger.debug("Calculating chunk size statistics")
         chunk_sizes = [chunk.chunk.word_count for chunk in result.chunks]
         avg_chunk_size = sum(chunk_sizes) / len(chunk_sizes)
 
         # Chapter distribution
+        logger.debug("Calculating chapter distribution")
         chapter_chunk_counts = {}
         for chunk in result.chunks:
             chapter_idx = chunk.chunk.chapter_index
@@ -180,7 +221,7 @@ class EmbeddingsCreator:
                 chapter_chunk_counts.get(chapter_idx, 0) + 1
             )
 
-        return {
+        stats = {
             "file_path": result.file_path,
             "total_chunks": result.total_chunks,
             "total_words": result.total_words,
@@ -207,6 +248,9 @@ class EmbeddingsCreator:
             },
         }
 
+        logger.debug(f"Statistics calculated successfully: {len(stats)} metrics")
+        return stats
+
 
 def create_embeddings_for_epub(
     file_path: str,
@@ -229,6 +273,7 @@ def create_embeddings_for_epub(
     Returns:
         EmbeddingsResult containing all chunks with their embeddings
     """
+    logger.info(f"Creating embeddings for EPUB file: {file_path}")
     creator = EmbeddingsCreator(model_name, device, batch_size)
     return creator.create_embeddings_for_epub(file_path, chunk_size, chunk_overlap)
 
@@ -243,8 +288,17 @@ def get_embeddings_model(model_name: str | None = None, device: str | None = Non
     Returns:
         SentenceTransformer model instance
     """
+    logger.debug("Getting embeddings model instance")
     settings = get_settings()
     model_name = model_name or settings.embeddings_model
     device = device or settings.embeddings_device
 
-    return SentenceTransformer(model_name, device=device)
+    logger.debug(f"Loading model {model_name} on device {device}")
+
+    try:
+        model = SentenceTransformer(model_name, device=device)
+        logger.debug(f"Model {model_name} loaded successfully")
+        return model
+    except Exception:
+        logger.exception(f"Failed to load model {model_name}")
+        raise

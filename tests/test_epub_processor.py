@@ -1,8 +1,15 @@
+"""Tests for the EPUB processor module."""
+
+import logging
 from pathlib import Path
 
 from ebooklib import epub
 
 from home_library.epub_processor import parse_epub
+
+
+# Configure logging for tests to avoid noise
+logging.basicConfig(level=logging.CRITICAL)
 
 
 def _make_sample_epub(tmp_path: Path) -> Path:

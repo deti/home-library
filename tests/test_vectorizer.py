@@ -1,5 +1,6 @@
 """Tests for the vectorizer module."""
 
+import logging
 from unittest.mock import Mock, patch
 
 import pytest
@@ -12,6 +13,10 @@ from home_library.vectorizer import (
     get_vectorization_stats,
     vectorize_epub,
 )
+
+
+# Configure logging for tests to avoid noise
+logging.basicConfig(level=logging.CRITICAL)
 
 
 class TestTextChunk:

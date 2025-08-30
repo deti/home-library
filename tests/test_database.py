@@ -1,11 +1,16 @@
 """Tests for the database service module."""
 
+import logging
 from unittest.mock import Mock, patch
 
 import pytest
 from sqlalchemy import text
 
 from home_library.database import DatabaseService, get_db_service
+
+
+# Configure logging for tests to avoid noise
+logging.basicConfig(level=logging.CRITICAL)
 
 
 class TestDatabaseService:

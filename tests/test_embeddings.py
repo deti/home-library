@@ -1,5 +1,6 @@
 """Tests for the embeddings module."""
 
+import logging
 from unittest.mock import Mock, patch
 
 import numpy as np
@@ -11,6 +12,10 @@ from home_library.embeddings import (
     create_embeddings_for_epub,
 )
 from home_library.vectorizer import TextChunk
+
+
+# Configure logging for tests to avoid noise
+logging.basicConfig(level=logging.CRITICAL)
 
 
 class TestEmbeddingChunk:

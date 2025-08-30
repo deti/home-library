@@ -7,6 +7,7 @@ The public API prefers modern Python data structures (Pydantic models)
 instead of raw dicts.
 """
 
+import logging
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -14,6 +15,9 @@ from dataclasses import dataclass
 from bs4 import BeautifulSoup
 from ebooklib import epub
 from pydantic import BaseModel, Field
+
+
+logger = logging.getLogger(__name__)
 
 
 class Identifier(BaseModel):
@@ -183,19 +187,25 @@ def _clean_title(title: str) -> str:
 
 def _extract_title_from_html(html_content: str) -> str | None:
     """Extract chapter title from HTML content using multiple strategies."""
+    logger.debug("Extracting title from HTML content using multiple strategies")
+
     soup = BeautifulSoup(html_content, "html.parser")
 
     # Strategy 1: Look for the first h1 tag
     h1 = soup.find("h1")
     if h1 and h1.get_text(strip=True):
         title = h1.get_text(strip=True)
-        return _clean_title(title)
+        cleaned_title = _clean_title(title)
+        logger.debug(f"Found title from h1 tag: '{cleaned_title}'")
+        return cleaned_title
 
     # Strategy 2: Look for the first h2 tag
     h2 = soup.find("h2")
     if h2 and h2.get_text(strip=True):
         title = h2.get_text(strip=True)
-        return _clean_title(title)
+        cleaned_title = _clean_title(title)
+        logger.debug(f"Found title from h2 tag: '{cleaned_title}'")
+        return cleaned_title
 
     # Strategy 3: Look for title tag in head
     title_tag = soup.find("title")
@@ -203,7 +213,9 @@ def _extract_title_from_html(html_content: str) -> str | None:
         title_text = title_tag.get_text(strip=True)
         # Skip generic titles like "Chapter" or "Page"
         if not re.match(r"^(Chapter|Page|Part)\s*\d*$", title_text, re.IGNORECASE):
-            return _clean_title(title_text)
+            cleaned_title = _clean_title(title_text)
+            logger.debug(f"Found title from title tag: '{cleaned_title}'")
+            return cleaned_title
 
     # Strategy 4: Look for the first heading (h1-h6) with substantial content
     for tag_name in ["h1", "h2", "h3", "h4", "h5", "h6"]:
@@ -211,7 +223,9 @@ def _extract_title_from_html(html_content: str) -> str | None:
         if heading:
             heading_text = heading.get_text(strip=True)
             if heading_text and len(heading_text) > 3:  # Avoid very short headings
-                return _clean_title(heading_text)
+                cleaned_title = _clean_title(heading_text)
+                logger.debug(f"Found title from {tag_name} tag: '{cleaned_title}'")
+                return cleaned_title
 
     # Strategy 5: Look for the first paragraph that starts with "Chapter" or "Part"
     for p in soup.find_all("p"):
@@ -221,21 +235,30 @@ def _extract_title_from_html(html_content: str) -> str | None:
             title_match = re.match(r"^(Chapter|Part)\s+\d+[^.]*", p_text, re.IGNORECASE)
             if title_match:
                 title = title_match.group(0).strip()
-                return _clean_title(title)
+                cleaned_title = _clean_title(title)
+                logger.debug(f"Found title from paragraph: '{cleaned_title}'")
+                return cleaned_title
 
+    logger.debug("No title found using any strategy")
     return None
 
 
 def _extract_text_from_item(item) -> str:
     # item is EpubHtml
-    html = item.get_content()
-    soup = BeautifulSoup(html, "html.parser")
-    # Remove scripts/styles
-    for tag in soup(["script", "style", "noscript"]):
-        tag.decompose()
-    text = soup.get_text(" ", strip=True)
-    # Collapse excessive spaces
-    return " ".join(text.split())
+    try:
+        html = item.get_content()
+        soup = BeautifulSoup(html, "html.parser")
+        # Remove scripts/styles
+        for tag in soup(["script", "style", "noscript"]):
+            tag.decompose()
+        text = soup.get_text(" ", strip=True)
+        # Collapse excessive spaces
+        cleaned_text = " ".join(text.split())
+        logger.debug(f"Extracted {len(cleaned_text)} characters of text from item")
+        return cleaned_text
+    except Exception:
+        logger.exception("Failed to extract text from item")
+        return ""
 
 
 def parse_epub(path: str, include_text: bool = True) -> EpubDetails:
@@ -246,59 +269,110 @@ def parse_epub(path: str, include_text: bool = True) -> EpubDetails:
         include_text: When False, chapters.text will be empty strings but
             word_count preserved via estimation (0 without text). Useful for concise CLI output.
     """
+    logger.info(f"Parsing EPUB file: {path}")
+    logger.debug(f"Include text setting: {include_text}")
 
-    book = epub.read_epub(path)
+    try:
+        logger.debug("Reading EPUB file with ebooklib")
+        book = epub.read_epub(path)
+        logger.info(f"EPUB file loaded successfully: {len(book.spine)} spine items")
+    except Exception:
+        logger.exception(f"Failed to read EPUB file {path}")
+        raise
 
-    metadata = BookInfo(
-        title=_first_meta(book, "title"),
-        authors=_multi_meta(book, "creator"),
-        language=_first_meta(book, "language"),
-        publisher=_first_meta(book, "publisher"),
-        description=_first_meta(book, "description"),
-        subjects=_multi_meta(book, "subject"),
-        identifiers=_collect_identifiers(book),
-    )
+    # Extract metadata
+    logger.debug("Extracting book metadata")
+    try:
+        metadata = BookInfo(
+            title=_first_meta(book, "title"),
+            authors=_multi_meta(book, "creator"),
+            language=_first_meta(book, "language"),
+            publisher=_first_meta(book, "publisher"),
+            description=_first_meta(book, "description"),
+            subjects=_multi_meta(book, "subject"),
+            identifiers=_collect_identifiers(book),
+        )
+        logger.info(f"Metadata extracted - Title: '{metadata.title}', Authors: {len(metadata.authors)}, Language: {metadata.language}")
+    except Exception:
+        logger.exception("Failed to extract metadata")
+        raise
 
-    toc_models = _toc_to_models(book.toc)
-    href_to_title = _toc_title_by_href(toc_models)
+    # Process table of contents
+    logger.debug("Processing table of contents")
+    try:
+        toc_models = _toc_to_models(book.toc)
+        href_to_title = _toc_title_by_href(toc_models)
+        logger.info(f"TOC processed: {len(toc_models)} top-level items, {len(href_to_title)} href mappings")
+    except Exception:
+        logger.exception("Failed to process table of contents")
+        raise
 
+    # Process chapters
+    logger.debug("Processing chapters from spine")
     chapters: list[Chapter] = []
+    processed_items = 0
+    skipped_items = 0
 
     # book.spine is list of (idref, linear)
     for idx, (idref, _linear) in enumerate(book.spine):
         try:
             item = book.get_item_with_id(idref)
+            processed_items += 1
         except KeyError:
+            logger.warning(f"Could not find item with idref: {idref}")
+            skipped_items += 1
             continue
+
         # Only process HTML content
         media_type = getattr(item, "media_type", "")
         if not media_type or not media_type.endswith("html+xml"):
+            logger.debug(f"Skipping non-HTML item {idref} with media type: {media_type}")
+            skipped_items += 1
             continue
+
         href = getattr(item, "file_name", None)
+        logger.debug(f"Processing chapter {idx}: {idref} -> {href}")
 
         # Try to get title from TOC first
         title = href_to_title.get(href or "")
+        if title:
+            logger.debug(f"Found title from TOC: '{title}'")
 
         # If no title from TOC, try to extract from HTML content
         if not title and include_text:
             try:
                 html_content = item.get_content()
                 title = _extract_title_from_html(html_content)
-            except Exception:
+                if title:
+                    logger.debug(f"Extracted title from HTML: '{title}'")
+            except Exception as e:
+                logger.warning(f"Failed to extract title from HTML for chapter {idx}: {e}")
                 title = None
 
         text = ""
         if include_text:
             try:
                 text = _extract_text_from_item(item)
-            except Exception:
+            except Exception as e:
+                logger.warning(f"Failed to extract text from chapter {idx}: {e}")
                 text = ""
+
         word_count = len(text.split()) if text else 0
+        logger.debug(f"Chapter {idx}: {word_count} words, title: '{title}'")
+
         chapters.append(
             Chapter(index=idx, title=title, href=href, text=text, word_count=word_count)
         )
 
-    return EpubDetails(path=path, metadata=metadata, toc=toc_models, chapters=chapters)
+    logger.info(f"Chapter processing completed: {len(chapters)} chapters, {processed_items} items processed, {skipped_items} items skipped")
+
+    total_words = sum(chapter.word_count for chapter in chapters)
+    logger.info(f"Total word count across all chapters: {total_words}")
+
+    result = EpubDetails(path=path, metadata=metadata, toc=toc_models, chapters=chapters)
+    logger.info(f"EPUB parsing completed successfully: {len(result.chapters)} chapters, {total_words} total words")
+
+    return result
 
 
 __all__ = [
