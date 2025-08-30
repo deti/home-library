@@ -30,6 +30,7 @@ home-library = "home_library.main:main"
 show-settings = "home_library.cli.show_settings:main"
 epub-info = "home_library.cli.epub:main"
 vectorize-epub = "home_library.cli.vectorize:main"
+search-library = "home_library.cli.search:main"
 db-migrate = "home_library.cli.migrate:main"
 db-upload = "home_library.cli.upload:main"
 
