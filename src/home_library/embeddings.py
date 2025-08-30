@@ -298,7 +298,7 @@ def get_embeddings_model(model_name: str | None = None, device: str | None = Non
     try:
         model = SentenceTransformer(model_name, device=device)
         logger.debug(f"Model {model_name} loaded successfully")
-        return model
     except Exception:
         logger.exception(f"Failed to load model {model_name}")
         raise
+    return model

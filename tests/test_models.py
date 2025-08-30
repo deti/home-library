@@ -174,13 +174,13 @@ class TestEmbedding:
 
         embedding = Embedding(
             chunk_id=chunk_id,
-            vector=str(vector),  # Store as string for now
+            vector=vector,  # Store as vector directly
             model_name="test-model",
             embedding_dimension=5
         )
 
         assert embedding.chunk_id == chunk_id
-        assert embedding.vector == str(vector)
+        assert embedding.vector == vector
         assert embedding.model_name == "test-model"
         assert embedding.embedding_dimension == 5
         assert embedding.id is None
@@ -193,7 +193,7 @@ class TestEmbedding:
 
         embedding = Embedding(
             chunk_id=chunk_id,
-            vector=str(vector),
+            vector=vector,
             model_name="test-model",
             embedding_dimension=3
         )
@@ -210,7 +210,7 @@ class TestEmbedding:
 
         embedding = Embedding(
             chunk_id=chunk_id,
-            vector=str(vector),
+            vector=vector,
             model_name="test-model",
             embedding_dimension=2
         )
@@ -298,7 +298,7 @@ class TestModelRelationships:
         )
         embedding = Embedding(
             chunk_id=chunk.id,
-            vector="[0.1, 0.2, 0.3]",
+            vector=[0.1, 0.2, 0.3],
             model_name="test-model",
             embedding_dimension=3
         )

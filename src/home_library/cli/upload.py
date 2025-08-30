@@ -6,7 +6,6 @@ including text extraction, chunking, and embedding generation.
 
 # ruff: noqa: T201
 import argparse
-import json
 import sys
 import traceback
 from pathlib import Path
@@ -138,7 +137,7 @@ def upload_epub(file_path: str, generate_embeddings: bool = True) -> None:  # no
 
                         embedding = Embedding(
                             chunk_id=chunk.id,
-                            vector=json.dumps(embedding_vector),
+                            vector=embedding_vector,
                             model_name=settings.embeddings_model,
                             embedding_dimension=len(embedding_vector)
                         )

@@ -6,6 +6,7 @@ WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'home_library')\gexec
 -- Create extensions if they don't exist
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+CREATE EXTENSION IF NOT EXISTS "vector";
 
 -- Grant privileges
 GRANT ALL PRIVILEGES ON DATABASE home_library TO home_library_user;

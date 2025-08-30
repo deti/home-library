@@ -14,10 +14,10 @@ dependencies = [
     "ebooklib>=0.18",
     "beautifulsoup4>=4.12",
     "sentence-transformers>=2.2.2",
-    "numpy>=1.24.0",
     "sqlalchemy>=2.0.0",
     "alembic>=1.13.0",
     "psycopg[binary,pool]>=3.2.9",
+    "pgvector>=0.4.1",
 ]
 
 [dependency-groups]

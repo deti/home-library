@@ -1,6 +1,5 @@
 """Tests for the search service functionality."""
 
-import json
 from unittest.mock import MagicMock, Mock, patch
 
 import numpy as np
@@ -108,58 +107,6 @@ class TestSearchService:
         assert service.device == "cuda"
         assert service.model == mock_model
 
-    @patch("home_library.search.get_embeddings_model")
-    @patch("home_library.search.get_settings")
-    def test_cosine_similarity_calculation(self, mock_get_settings, mock_get_model):
-        """Test cosine similarity calculation."""
-        # Mock settings and model
-        mock_settings = Mock()
-        mock_get_settings.return_value = mock_settings
-        mock_model = Mock()
-        mock_get_model.return_value = mock_model
-
-        service = SearchService()
-
-        # Test vectors
-        vec1 = np.array([1.0, 0.0, 0.0], dtype=np.float32)
-        vec2 = np.array([1.0, 0.0, 0.0], dtype=np.float32)
-
-        # Should be perfectly similar
-        similarity = service.cosine_similarity(vec1, vec2)
-        assert similarity == 1.0
-
-        # Test orthogonal vectors
-        vec3 = np.array([0.0, 1.0, 0.0], dtype=np.float32)
-        similarity = service.cosine_similarity(vec1, vec3)
-        assert similarity == 0.0
-
-        # Test opposite vectors
-        vec4 = np.array([-1.0, 0.0, 0.0], dtype=np.float32)
-        similarity = service.cosine_similarity(vec1, vec4)
-        assert similarity == 0.0  # Should be clamped to 0
-
-    @patch("home_library.search.get_embeddings_model")
-    @patch("home_library.search.get_settings")
-    def test_cosine_similarity_edge_cases(self, mock_get_settings, mock_get_model):
-        """Test cosine similarity with edge cases."""
-        # Mock settings and model
-        mock_settings = Mock()
-        mock_get_settings.return_value = mock_settings
-        mock_model = Mock()
-        mock_get_model.return_value = mock_model
-
-        service = SearchService()
-
-        # Test zero vectors
-        vec1 = np.array([0.0, 0.0, 0.0], dtype=np.float32)
-        vec2 = np.array([1.0, 0.0, 0.0], dtype=np.float32)
-        similarity = service.cosine_similarity(vec1, vec2)
-        assert similarity == 0.0
-
-        # Test both zero vectors
-        vec3 = np.array([0.0, 0.0, 0.0], dtype=np.float32)
-        similarity = service.cosine_similarity(vec1, vec3)
-        assert similarity == 0.0
 
     @patch("home_library.search.get_db_service")
     @patch("home_library.search.get_embeddings_model")
@@ -224,11 +171,16 @@ class TestSearchService:
         chunk.end_token = 10
         chunk.word_count = 10
 
-        embedding = Mock()
-        embedding.vector = json.dumps([0.1, 0.2, 0.3])
+        # Mock database row with similarity
+        mock_row = Mock()
+        mock_row.Embedding = Mock()
+        mock_row.TextChunk = chunk
+        mock_row.Chapter = chapter
+        mock_row.Epub = epub
+        mock_row.similarity = 0.85
 
         # Mock results
-        mock_results = [(embedding, chunk, chapter, epub)]
+        mock_results = [mock_row]
         mock_result = Mock()
         mock_result.all.return_value = mock_results
         mock_session.execute.return_value = mock_result
@@ -244,7 +196,7 @@ class TestSearchService:
         assert result.chapter_title == "Test Chapter"
         assert result.chunk_index == 0
         assert result.text == "This is a test text chunk."
-        assert result.similarity_score > 0
+        assert result.similarity_score == 0.85
 
     @patch("home_library.search.get_db_service")
     @patch("home_library.search.get_embeddings_model")
@@ -281,22 +233,31 @@ class TestSearchService:
         chunk.end_token = 10
         chunk.word_count = 10
 
-        embedding = Mock()
-        embedding.vector = json.dumps([0.1, 0.2, 0.3])
-
-        # Mock results
-        mock_results = [(embedding, chunk, chapter, epub)]
-        mock_result = Mock()
-        mock_result.all.return_value = mock_results
-        mock_session.execute.return_value = mock_result
+        # Mock database row with similarity
+        mock_row = Mock()
+        mock_row.Embedding = Mock()
+        mock_row.TextChunk = chunk
+        mock_row.Chapter = chapter
+        mock_row.Epub = epub
+        mock_row.similarity = 0.7
 
         service = SearchService()
 
         # Test with very high threshold (should filter out results)
+        # Mock empty results for high threshold
+        mock_result_empty = Mock()
+        mock_result_empty.all.return_value = []
+        mock_session.execute.return_value = mock_result_empty
+
         results = service.search("test query", limit=1, similarity_threshold=0.99)
         assert len(results) == 0
 
         # Test with low threshold (should include results)
+        # Mock results with data for low threshold
+        mock_result_with_data = Mock()
+        mock_result_with_data.all.return_value = [mock_row]
+        mock_session.execute.return_value = mock_result_with_data
+
         results = service.search("test query", limit=1, similarity_threshold=0.1)
         assert len(results) == 1
 
@@ -337,22 +298,29 @@ class TestSearchService:
             chunk.end_token = (i + 1) * 10
             chunk.word_count = 10
 
-            embedding = Mock()
-            embedding.vector = json.dumps([0.1, 0.2, 0.3])
+            # Mock database row with similarity
+            mock_row = Mock()
+            mock_row.Embedding = Mock()
+            mock_row.TextChunk = chunk
+            mock_row.Chapter = chapter
+            mock_row.Epub = epub
+            mock_row.similarity = 0.8 - (i * 0.05)  # Decreasing similarity
 
-            mock_results.append((embedding, chunk, chapter, epub))
-
-        mock_result = Mock()
-        mock_result.all.return_value = mock_results
-        mock_session.execute.return_value = mock_result
+            mock_results.append(mock_row)
 
         service = SearchService()
 
         # Test with limit 3
+        mock_result_3 = Mock()
+        mock_result_3.all.return_value = mock_results[:3]  # Simulate database LIMIT
+        mock_session.execute.return_value = mock_result_3
         results = service.search("test query", limit=3)
         assert len(results) == 3
 
         # Test with limit 1
+        mock_result_1 = Mock()
+        mock_result_1.all.return_value = mock_results[:1]  # Simulate database LIMIT
+        mock_session.execute.return_value = mock_result_1
         results = service.search("test query", limit=1)
         assert len(results) == 1
 
@@ -374,30 +342,9 @@ class TestSearchService:
         mock_db_service.get_session.return_value = _mock_db_context_manager(mock_session)
         mock_get_db.return_value = mock_db_service
 
-        # Create mock database objects with invalid embedding data
-        epub = Mock()
-        epub.title = "Test Book"
-        epub.author = "Test Author"
-        epub.file_path = "/path/to/book.epub"
-
-        chapter = Mock()
-        chapter.chapter_index = 1
-        chapter.title = "Test Chapter"
-
-        chunk = Mock()
-        chunk.chunk_index = 0
-        chunk.text = "This is a test text chunk."
-        chunk.start_token = 0
-        chunk.end_token = 10
-        chunk.word_count = 10
-
-        embedding = Mock()
-        embedding.vector = "invalid json data"  # Invalid JSON
-
-        # Mock results
-        mock_results = [(embedding, chunk, chapter, epub)]
+        # Mock empty results (database would handle invalid data gracefully)
         mock_result = Mock()
-        mock_result.all.return_value = mock_results
+        mock_result.all.return_value = []
         mock_session.execute.return_value = mock_result
 
         service = SearchService()

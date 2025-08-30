@@ -255,10 +255,10 @@ def _extract_text_from_item(item) -> str:
         # Collapse excessive spaces
         cleaned_text = " ".join(text.split())
         logger.debug(f"Extracted {len(cleaned_text)} characters of text from item")
-        return cleaned_text
     except Exception:
         logger.exception("Failed to extract text from item")
         return ""
+    return cleaned_text
 
 
 def parse_epub(path: str, include_text: bool = True) -> EpubDetails:

@@ -4,10 +4,8 @@ This module provides functionality to search through vectorized book content
 using cosine similarity between query embeddings and stored embeddings.
 """
 
-import json
 import logging
 
-import numpy as np
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
@@ -78,26 +76,29 @@ class SearchService:
         if hasattr(query_embedding, "tolist"):
             query_vector = query_embedding.tolist()
         else:
-            query_vector = query_embedding
-
-        # Convert to numpy array for similarity calculations
-        query_array = np.array(query_vector, dtype=np.float32)
+            query_vector = list(query_embedding)
 
         # Get database session
         db_service = get_db_service()
 
         with db_service.get_session() as session:
-            # Get all embeddings with their associated chunks, chapters, and epubs
+            # Use pgvector's cosine distance operator for efficient similarity search
+            # Note: cosine distance = 1 - cosine similarity, so we order by distance ASC
+            # and convert back to similarity (1 - distance) for the threshold check
             stmt = (
                 select(
                     Embedding,
                     TextChunk,
                     Chapter,
-                    Epub
+                    Epub,
+                    (1 - Embedding.vector.cosine_distance(query_vector)).label("similarity")
                 )
                 .join(TextChunk, Embedding.chunk_id == TextChunk.id)
                 .join(Chapter, TextChunk.chapter_id == Chapter.id)
                 .join(Epub, TextChunk.epub_id == Epub.id)
+                .filter((1 - Embedding.vector.cosine_distance(query_vector)) >= similarity_threshold)
+                .order_by(Embedding.vector.cosine_distance(query_vector))
+                .limit(limit)
             )
 
             results = session.execute(stmt).all()
@@ -106,33 +107,17 @@ class SearchService:
                 logger.warning("No embeddings found in database")
                 return []
 
-            # Calculate similarity scores
-            scored_results = []
-            for embedding, chunk, chapter, epub in results:
-                # Parse the stored vector (stored as JSON string)
-                try:
-                    stored_vector = json.loads(embedding.vector)
-                    stored_array = np.array(stored_vector, dtype=np.float32)
-
-                    # Calculate cosine similarity
-                    similarity = self.cosine_similarity(query_array, stored_array)
-
-                    if similarity >= similarity_threshold:
-                        scored_results.append({
-                            "similarity": similarity,
-                            "embedding": embedding,
-                            "chunk": chunk,
-                            "chapter": chapter,
-                            "epub": epub
-                        })
-
-                except (json.JSONDecodeError, ValueError) as e:
-                    logger.warning(f"Error parsing embedding vector: {e}")
-                    continue
-
-            # Sort by similarity score (descending) and take top results
-            scored_results.sort(key=lambda x: x["similarity"], reverse=True)
-            top_results = scored_results[:limit]
+            # Results are already sorted and filtered by the database
+            top_results = [
+                {
+                    "similarity": float(row.similarity),
+                    "embedding": row.Embedding,
+                    "chunk": row.TextChunk,
+                    "chapter": row.Chapter,
+                    "epub": row.Epub
+                }
+                for row in results
+            ]
 
             # Convert to SearchResult objects
             search_results = []
@@ -154,30 +139,6 @@ class SearchService:
 
             logger.info(f"Found {len(search_results)} results above threshold {similarity_threshold}")
             return search_results
-
-    def cosine_similarity(self, vec1: np.ndarray, vec2: np.ndarray) -> float:
-        """Calculate cosine similarity between two vectors.
-
-        Args:
-            vec1: First vector
-            vec2: Second vector
-
-        Returns:
-            Cosine similarity score between 0 and 1
-        """
-        # Normalize vectors
-        norm1 = np.linalg.norm(vec1)
-        norm2 = np.linalg.norm(vec2)
-
-        if norm1 == 0 or norm2 == 0:
-            return 0.0
-
-        # Calculate cosine similarity
-        dot_product = np.dot(vec1, vec2)
-        similarity = dot_product / (norm1 * norm2)
-
-        # Ensure result is between 0 and 1
-        return max(0.0, min(1.0, similarity))
 
 
 def search_library(
