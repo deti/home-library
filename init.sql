@@ -1,5 +1,6 @@
 -- Initialize home_library database
-CREATE DATABASE IF NOT EXISTS home_library;
+SELECT 'CREATE DATABASE home_library'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'home_library')\gexec
 \c home_library;
 
 -- Create extensions if they don't exist
