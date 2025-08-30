@@ -1,14 +1,10 @@
 """Tests for the search service functionality."""
 
 import json
-from unittest.mock import Mock, patch, MagicMock
-from uuid import uuid4
+from unittest.mock import MagicMock, Mock, patch
 
 import numpy as np
-import pytest
-from sqlalchemy.orm import Session
 
-from home_library.models import Chapter, Embedding, Epub, TextChunk
 from home_library.search import SearchResult, SearchService, search_library
 
 
@@ -127,19 +123,19 @@ class TestSearchService:
         # Test vectors
         vec1 = np.array([1.0, 0.0, 0.0], dtype=np.float32)
         vec2 = np.array([1.0, 0.0, 0.0], dtype=np.float32)
-        
+
         # Should be perfectly similar
-        similarity = service._cosine_similarity(vec1, vec2)
+        similarity = service.cosine_similarity(vec1, vec2)
         assert similarity == 1.0
 
         # Test orthogonal vectors
         vec3 = np.array([0.0, 1.0, 0.0], dtype=np.float32)
-        similarity = service._cosine_similarity(vec1, vec3)
+        similarity = service.cosine_similarity(vec1, vec3)
         assert similarity == 0.0
 
         # Test opposite vectors
         vec4 = np.array([-1.0, 0.0, 0.0], dtype=np.float32)
-        similarity = service._cosine_similarity(vec1, vec4)
+        similarity = service.cosine_similarity(vec1, vec4)
         assert similarity == 0.0  # Should be clamped to 0
 
     @patch("home_library.search.get_embeddings_model")
@@ -157,12 +153,12 @@ class TestSearchService:
         # Test zero vectors
         vec1 = np.array([0.0, 0.0, 0.0], dtype=np.float32)
         vec2 = np.array([1.0, 0.0, 0.0], dtype=np.float32)
-        similarity = service._cosine_similarity(vec1, vec2)
+        similarity = service.cosine_similarity(vec1, vec2)
         assert similarity == 0.0
 
         # Test both zero vectors
         vec3 = np.array([0.0, 0.0, 0.0], dtype=np.float32)
-        similarity = service._cosine_similarity(vec1, vec3)
+        similarity = service.cosine_similarity(vec1, vec3)
         assert similarity == 0.0
 
     @patch("home_library.search.get_db_service")
@@ -295,7 +291,7 @@ class TestSearchService:
         mock_session.execute.return_value = mock_result
 
         service = SearchService()
-        
+
         # Test with very high threshold (should filter out results)
         results = service.search("test query", limit=1, similarity_threshold=0.99)
         assert len(results) == 0
@@ -351,7 +347,7 @@ class TestSearchService:
         mock_session.execute.return_value = mock_result
 
         service = SearchService()
-        
+
         # Test with limit 3
         results = service.search("test query", limit=3)
         assert len(results) == 3
@@ -427,10 +423,10 @@ class TestConvenienceFunctions:
 
         # Verify SearchService was created with correct parameters
         mock_search_service_class.assert_called_once_with(None, None)
-        
+
         # Verify search was called with correct parameters
         mock_service.search.assert_called_once_with("test query", 5, 0.5)
-        
+
         # Verify results
         assert results == ["result1", "result2"]
 
@@ -444,8 +440,8 @@ class TestConvenienceFunctions:
 
         # Test with custom parameters
         results = search_library(
-            "test query", 
-            limit=3, 
+            "test query",
+            limit=3,
             similarity_threshold=0.7,
             model_name="custom-model",
             device="cuda"
@@ -453,9 +449,9 @@ class TestConvenienceFunctions:
 
         # Verify SearchService was created with custom parameters
         mock_search_service_class.assert_called_once_with("custom-model", "cuda")
-        
+
         # Verify search was called with correct parameters
         mock_service.search.assert_called_once_with("test query", 3, 0.7)
-        
+
         # Verify results
         assert results == ["result1"]

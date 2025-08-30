@@ -4,12 +4,11 @@
 import argparse
 import json
 import sys
-from typing import List
 
 from home_library.search import SearchResult, search_library
 
 
-def _print_search_results(results: List[SearchResult], query: str) -> None:
+def _print_search_results(results: list[SearchResult], query: str) -> None:
     """Print search results in a human-readable format."""
     if not results:
         print(f"🔍 No results found for query: '{query}'")
@@ -34,7 +33,7 @@ def _print_search_results(results: List[SearchResult], query: str) -> None:
         print()
 
 
-def _print_json_results(results: List[SearchResult], query: str) -> None:
+def _print_json_results(results: list[SearchResult], query: str) -> None:
     """Print search results in JSON format."""
     output_data = {
         "query": query,
@@ -44,7 +43,7 @@ def _print_json_results(results: List[SearchResult], query: str) -> None:
     print(json.dumps(output_data, indent=2))
 
 
-def _print_detailed_results(results: List[SearchResult], query: str) -> None:
+def _print_detailed_results(results: list[SearchResult], query: str) -> None:
     """Print detailed search results with full text."""
     if not results:
         print(f"🔍 No results found for query: '{query}'")
@@ -65,7 +64,7 @@ def _print_detailed_results(results: List[SearchResult], query: str) -> None:
         print(f"   Section: Chunk {result.chunk_index} (tokens {result.start_token}-{result.end_token})")
         print(f"   Words: {result.word_count}")
         print(f"   File: {result.file_path}")
-        print(f"   Full Text:")
+        print("   Full Text:")
         print(f"   {'-' * 40}")
         print(f"   {result.text}")
         print(f"   {'-' * 40}")
@@ -82,28 +81,28 @@ def main() -> None:
         description="Search the vectorized library using vector similarity",
     )
     parser.add_argument(
-        "query", 
+        "query",
         help="Search query text"
     )
 
     # Search options
     parser.add_argument(
-        "--limit", 
-        type=int, 
+        "--limit",
+        type=int,
         default=5,
         help="Maximum number of results to return (default: 5)"
     )
     parser.add_argument(
-        "--threshold", 
-        type=float, 
+        "--threshold",
+        type=float,
         default=0.3,
         help="Minimum similarity score threshold 0.0-1.0 (default: 0.3)"
     )
 
     # Model options
     parser.add_argument(
-        "--model", 
-        type=str, 
+        "--model",
+        type=str,
         help="Override default sentence-transformers model"
     )
     parser.add_argument(
@@ -119,8 +118,8 @@ def main() -> None:
         help="Show full text content for each result"
     )
     parser.add_argument(
-        "--json", 
-        action="store_true", 
+        "--json",
+        action="store_true",
         help="Output results in JSON format"
     )
 
@@ -161,8 +160,7 @@ def main() -> None:
             _print_detailed_results(results, args.query)
         else:
             _print_search_results(results, args.query)
-
-        return 0
+            return 0
 
     except KeyboardInterrupt:
         print("\n❌ Search interrupted by user")

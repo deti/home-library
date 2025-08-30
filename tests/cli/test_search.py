@@ -1,16 +1,16 @@
 """Tests for the CLI search command."""
 
 import json
-from unittest.mock import Mock, patch
 from io import StringIO
+from unittest.mock import patch
 
 import pytest
 
 from home_library.cli.search import (
-    _print_search_results,
-    _print_json_results,
     _print_detailed_results,
-    main
+    _print_json_results,
+    _print_search_results,
+    main,
 )
 from home_library.search import SearchResult
 
@@ -127,11 +127,11 @@ class TestSearchOutputFunctions:
 
         # Parse the JSON output
         output_data = json.loads(captured.out)
-        
+
         assert output_data["query"] == "test query"
         assert output_data["total_results"] == 1
         assert len(output_data["results"]) == 1
-        
+
         result = output_data["results"][0]
         assert result["book_title"] == "Test Book"
         assert result["book_author"] == "Test Author"
@@ -235,9 +235,9 @@ class TestSearchCLI:
 
         # Test with custom parameters
         with patch("sys.argv", [
-            "search-library", 
-            "test query", 
-            "--limit", "3", 
+            "search-library",
+            "test query",
+            "--limit", "3",
             "--threshold", "0.7",
             "--model", "custom-model",
             "--device", "cuda"
@@ -316,17 +316,17 @@ class TestSearchCLI:
 
         assert exit_code == 0
         captured = capsys.readouterr()
-        
+
         # Verify JSON output - extract JSON from the captured output
-        output_lines = captured.out.strip().split('\n')
+        output_lines = captured.out.strip().split("\n")
         json_start = None
         for i, line in enumerate(output_lines):
-            if line.strip().startswith('{'):
+            if line.strip().startswith("{"):
                 json_start = i
                 break
-        
+
         if json_start is not None:
-            json_content = '\n'.join(output_lines[json_start:])
+            json_content = "\n".join(output_lines[json_start:])
             output_data = json.loads(json_content)
             assert output_data["query"] == "test query"
             assert output_data["total_results"] == 1
@@ -335,27 +335,27 @@ class TestSearchCLI:
 
     def test_main_invalid_limit(self):
         """Test search with invalid limit parameter."""
-        with patch("sys.argv", ["search-library", "test query", "--limit", "0"]):
-            with patch("sys.stderr", StringIO()) as mock_stderr:
-                exit_code = main()
+        with patch("sys.argv", ["search-library", "test query", "--limit", "0"]), \
+             patch("sys.stderr", StringIO()) as mock_stderr:
+            exit_code = main()
 
         assert exit_code == 1
         assert "Error: Limit must be at least 1" in mock_stderr.getvalue()
 
     def test_main_invalid_threshold_low(self):
         """Test search with invalid threshold parameter (too low)."""
-        with patch("sys.argv", ["search-library", "test query", "--threshold", "-0.1"]):
-            with patch("sys.stderr", StringIO()) as mock_stderr:
-                exit_code = main()
+        with patch("sys.argv", ["search-library", "test query", "--threshold", "-0.1"]), \
+             patch("sys.stderr", StringIO()) as mock_stderr:
+            exit_code = main()
 
         assert exit_code == 1
         assert "Error: Threshold must be between 0.0 and 1.0" in mock_stderr.getvalue()
 
     def test_main_invalid_threshold_high(self):
         """Test search with invalid threshold parameter (too high)."""
-        with patch("sys.argv", ["search-library", "test query", "--threshold", "1.1"]):
-            with patch("sys.stderr", StringIO()) as mock_stderr:
-                exit_code = main()
+        with patch("sys.argv", ["search-library", "test query", "--threshold", "1.1"]), \
+             patch("sys.stderr", StringIO()) as mock_stderr:
+            exit_code = main()
 
         assert exit_code == 1
         assert "Error: Threshold must be between 0.0 and 1.0" in mock_stderr.getvalue()
@@ -365,9 +365,9 @@ class TestSearchCLI:
         """Test search when an error occurs."""
         mock_search_library.side_effect = Exception("Search failed")
 
-        with patch("sys.argv", ["search-library", "test query"]):
-            with patch("sys.stderr", StringIO()) as mock_stderr:
-                exit_code = main()
+        with patch("sys.argv", ["search-library", "test query"]), \
+             patch("sys.stderr", StringIO()) as mock_stderr:
+            exit_code = main()
 
         assert exit_code == 1
         assert "Error performing search: Search failed" in mock_stderr.getvalue()
