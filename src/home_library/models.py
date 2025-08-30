@@ -148,8 +148,8 @@ class Embedding(Base):
         UUID(as_uuid=True), ForeignKey("text_chunks.id"), nullable=False, unique=True
     )
     vector: Mapped[Vector] = mapped_column(
-        Vector(1536), nullable=False
-    )  # Max common embedding dimension
+        Vector(384), nullable=False
+    )  # Matches all-MiniLM-L6-v2 default model
     model_name: Mapped[str] = mapped_column(String(100), nullable=False)
     embedding_dimension: Mapped[int] = mapped_column(Integer, nullable=False)
     created_at: Mapped[datetime] = mapped_column(

@@ -57,7 +57,7 @@ class Settings(BaseSettings):
         description="Number of overlapping tokens between consecutive chunks.",
     )
     embedding_dimension: int = Field(
-        default=768,
+        default=384,
         description="Dimension of the embedding vectors.",
     )
 
